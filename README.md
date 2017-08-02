@@ -1,9 +1,9 @@
 # emg-processing
-Work in progress about EMG processing
+Work in progress about EMG processing and using EMG for human-robot interaction (HRI)
 
 ## What this is 
 
-A collection of modules for retrieving the signals from our EMG sensors (Delsys), do basic processing, streaming the data on a Yarp network (or ROS network), than use the processed signals for HRI experiments.
+A collection of modules for retrieving the signals from our EMG sensors (Delsys), do basic processing, streaming the data on a Yarp network (or ROS network), then use the processed signals for our HRI experiments (humans interacting with iCub).
 
 If you are going to use these modules, please cite us:
 ```
