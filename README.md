@@ -7,7 +7,9 @@ A collection of modules for retrieving the signals from our EMG sensors (Delsys)
 
 If you are going to use these modules, please cite us:
 ```
-Ivaldi, S.; Fritzsche, L.; Babic, J.; Stulp, F.; Damsgaard, M.; Graimann, B.; Bellusci, G.; Nori, F. (2017) Anticipatory models of human movements and dynamics: the roadmap of the AnDy project. Proc. International Conf. on Digital Human Models (DHM).
+Ivaldi, S.; Fritzsche, L.; Babic, J.; Stulp, F.; Damsgaard, M.; Graimann, B.; 
+Bellusci, G.; Nori, F. (2017) Anticipatory models of human movements and dynamics: 
+the roadmap of the AnDy project. Proc. Int. Conf. on Digital Human Models (DHM).
 ```
 
 ## Hardware Requirements
