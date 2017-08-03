@@ -34,6 +34,79 @@ using namespace yarp::sig;
 #define DSCPAd(S,V) cout<<"  "<< S <<" : "<<V<<endl;
 
 
+//===============================
+//        EMGserver THREAD
+//===============================
+
+class EMGserverThread: public RateThread
+{
+    protected:
+
+        // name used for the ports
+        string name;
+        // current time
+        double curTime;
+
+    public: 
+
+    EMGserverThread(const double _period, string _name): RateThread(int(_period*1000.0))
+    {
+        name = _name;
+        yInfo("EMGserver: thread created");
+
+    }
+
+    virtual bool threadInit()
+    {
+        bool isConnected = false;
+
+        // establishing connection with the TCP server
+
+
+        if(isConnected==false)
+        {
+            yErr("EMGserver: cannot connect to TCP server of Delsys. Aborting module - please check Delsys before restarting.");
+            return false;
+        }
+
+        // opening ports
+
+        return true;
+
+    }
+
+    virtual void threadRelease()
+    {
+        //closing all the ports
+
+        // closing connection with TCP server of Delsys if needed
+
+        yInfo("EMGserver: thread closing");
+
+    }
+
+    //------ RUN -------
+    virtual void run()
+    {
+        // cyclic operations should be put here!
+        curTime = Time::now();
+
+        // read raw sensors from EMG
+
+        // compute filtered signal
+
+        // send output to raw port
+
+        // send output to filtered port
+
+
+
+    }
+
+
+
+
+};
 
 //===============================
 //        EMGserver MODULE
@@ -41,14 +114,17 @@ using namespace yarp::sig;
 class EMGserver: public RFModule
 {
 private:
-
-    Port rpc; // the port to handle messages
+    // counter for the number of minutes of execution
     int count;
-
-    //
+    // the port to handle messages
+    Port rpc; 
+    // name of the module, used for creating ports
     string name;
-    //
+    // rate of the server  hread, expressed in seconds: e.g, 20 ms => 0.02
+    double rate;
 
+    // server thread
+    EMGserverThread *serverThread;
 
 public:
 
@@ -56,6 +132,7 @@ public:
     EMGserver()
     {
         count=0;
+        rate = 0.01;
     }
 
     //---------------------------------------------------------
@@ -183,11 +260,22 @@ public:
         else
             name    = "EMGserver";
         //....................................................
+        readValue(rf,"rate",rate,0.01); //10 ms is the default rate for the thread
         
 
         cout<<"Parameters from init file: "<<endl;
         DSCPA(name);
+        DSCPA(rate);
        
+
+        //creating the thread for the server
+        serverThread = new EMGserverThread(rate,name);
+        if(!serverThread->start())
+        {
+            yErr("EMGserver: cannot start the server thread. Aborting.");
+            delete serverThread;
+            return false;
+        }
        
     
         //attach a port to the module, so we can send messages
@@ -195,30 +283,22 @@ public:
         //messages received from the port are redirected to the respond method
         rpc.open(string("/"+name+"/rpc:i").c_str());
         attach(rpc);
+        yInfo("EMGserver: RPC port attached");
 
-        return true;
-    }
-
-   
-
-    //---------------------------------------------------------
-    bool interruptModule()
-    {
-        cout<<"Interrupting your module, for port cleanup"<<endl;
         return true;
     }
 
     //---------------------------------------------------------
     bool close()
     {
-       
+        yInfo("EMGserver: closing module");
+        serverThread->stop();
+        delete serverThread;
 
-        cout<<"Close rpc port"<<endl;
+        yInfo("EMGserver: closing RPC port");
         rpc.interrupt();
         rpc.close();
-        Time::delay(0.2);
-
-        
+                
         return true;
     }
 };
