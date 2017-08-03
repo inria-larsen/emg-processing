@@ -65,7 +65,7 @@ class EMGserverThread: public RateThread
 
         if(isConnected==false)
         {
-            yErr("EMGserver: cannot connect to TCP server of Delsys. Aborting module - please check Delsys before restarting.");
+            yError("EMGserver: cannot connect to TCP server of Delsys. Aborting module - please check Delsys before restarting.");
             return false;
         }
 
@@ -272,7 +272,7 @@ public:
         serverThread = new EMGserverThread(rate,name);
         if(!serverThread->start())
         {
-            yErr("EMGserver: cannot start the server thread. Aborting.");
+            yError("EMGserver: cannot start the server thread. Aborting.");
             delete serverThread;
             return false;
         }
