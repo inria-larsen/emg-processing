@@ -22,6 +22,7 @@
 #include <fstream>
 #include <iostream>
 #include <stdio.h>
+#include <EmgTcp/EmgTcp.h>
 
 using namespace std;
 using namespace yarp::os;
@@ -61,6 +62,11 @@ class EMGserverThread: public RateThread
         bool isConnected = false;
 
         // establishing connection with the TCP server
+        
+        EmgTcp emgCon("169.254.1.165");
+        emgCon.connect2Server();
+
+
 
 
         if(isConnected==false)

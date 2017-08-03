@@ -1,7 +1,7 @@
 # emg-processing
 Work in progress about EMG processing and using EMG for human-robot interaction (HRI)
 
-## What this is 
+## What is this 
 
 A collection of modules for retrieving the signals from our EMG sensors (Delsys), do basic processing, streaming the data on a Yarp network (or ROS network), then use the processed signals for our HRI experiments (humans interacting with iCub).
 
@@ -19,6 +19,7 @@ the roadmap of the AnDy project. Proc. Int. Conf. on Digital Human Models (DHM).
 
 ## Software Requirements
 
+* C++ 11
 * Yarp
 * icub-main (only if you want to compile also the modules for controlling iCub)
 * icub-contrib 
@@ -48,7 +49,14 @@ The module `EMGhuman2robot` is used to retrieve the computed quantities and upda
 
 ### Setup and launch of the Delsys server
 
-TODO.
+Firstly the user must guarantee that both the host computer (the one running Delsys software), and the client computer (the one running **emg-processin** modules) are connected to the same network.
+
+Place the sensors in pais of agonist-antagonist muscles:
+
+ * (0-1) (2-3) (4-5) (6-7) (8-9) (10-11) (12-13) (14-15);  
+ * (BICEPS-TRICEPS) ... 
+
+ TODO: Complete with the rest of the procedures ...
 
 ### From terminal
 
