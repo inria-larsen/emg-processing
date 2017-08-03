@@ -6,7 +6,6 @@ project(emgtcp)
 
 include_directories(${YARP_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}/include/EmgTcp include)
 
-set(LIB_TYPE SHARED)
 
 add_library(EmgTcp SHARED src/EmgTcp.cpp)
 
