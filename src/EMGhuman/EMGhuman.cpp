@@ -34,6 +34,71 @@ using namespace yarp::sig;
 #define DSCPAd(S,V) cout<<"  "<< S <<" : "<<V<<endl;
 
 
+//===============================
+//        EMGhuman THREAD
+//===============================
+
+class EMGhumanThread: public RateThread
+{
+    protected:
+
+        // name used for the ports
+        string name;
+        // current time
+        double curTime;
+
+    public: 
+
+    EMGhumanThread(const double _period, string _name): RateThread(int(_period*1000.0))
+    {
+        name = _name;
+        yInfo("EMGhuman: thread created");
+
+    }
+
+    virtual bool threadInit()
+    {
+       
+        // opening ports
+
+        return true;
+
+    }
+
+    virtual void threadRelease()
+    {
+        //closing all the ports
+
+    
+
+        yInfo("EMGhuman: thread closing");
+
+    }
+
+    //------ RUN -------
+    virtual void run()
+    {
+        // cyclic operations should be put here!
+        curTime = Time::now();
+
+        // read EMG values from EMG server
+
+        // compute stiffness
+        
+        // compute ICC
+
+        // compute effort 
+
+        // send output to ports
+
+
+
+    }
+
+
+
+
+};
 
 //===============================
 //        EMGhuman MODULE
@@ -42,13 +107,17 @@ class EMGhuman: public RFModule
 {
 private:
 
-    Port rpc; // the port to handle messages
+     // counter for the number of minutes of execution
     int count;
-
-    //
+    // the port to handle messages
+    Port rpc; 
+    // name of the module, used for creating ports
     string name;
-    //
+    // rate of the human thread, expressed in seconds: e.g, 20 ms => 0.02
+    double rate;
 
+    // human thread
+    EMGhumanThread *humanThread;
 
 public:
 
@@ -56,13 +125,15 @@ public:
     EMGhuman()
     {
         count=0;
+        rate=0.01;
+        name="EMGhuman";
     }
 
     //---------------------------------------------------------
-    double getPeriod() { return 1.0; }
+    virtual double getPeriod() { return 1.0; }
 
     //---------------------------------------------------------
-    bool updateModule()
+    virtual bool updateModule()
     {
         if(count%60==0)
             cout<<" EMGhuman alive since "<<(count/60)<<" mins ... "<<endl;
@@ -174,7 +245,7 @@ public:
 
 
     //---------------------------------------------------------
-    bool configure(ResourceFinder &rf)
+    virtual bool configure(ResourceFinder &rf)
     {
         Time::turboBoost();
 
@@ -183,11 +254,22 @@ public:
         else
             name    = "EMGhuman";
         //....................................................
+        readValue(rf,"rate",rate,0.01); //10 ms is the default rate for the thread
         
 
         cout<<"Parameters from init file: "<<endl;
         DSCPA(name);
+        DSCPA(rate);
        
+
+        //creating the thread for the server
+        humanThread = new EMGhumanThread(rate,name);
+        if(!humanThread->start())
+        {
+            yError("EMGhuman: cannot start the server thread. Aborting.");
+            delete humanThread;
+            return false;
+        }
        
     
         //attach a port to the module, so we can send messages
@@ -195,6 +277,7 @@ public:
         //messages received from the port are redirected to the respond method
         rpc.open(string("/"+name+"/rpc:i").c_str());
         attach(rpc);
+        yInfo("EMGhuman: RPC port attached");
 
         return true;
     }
@@ -202,16 +285,12 @@ public:
    
 
     //---------------------------------------------------------
-    bool interruptModule()
-    {
-        cout<<"Interrupting your module, for port cleanup"<<endl;
-        return true;
-    }
-
-    //---------------------------------------------------------
-    bool close()
+    virtual bool close()
     {
        
+       //closing thread
+       humanThread->stop();
+       delete humanThread;
 
         cout<<"Close rpc port"<<endl;
         rpc.interrupt();

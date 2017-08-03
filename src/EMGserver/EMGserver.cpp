@@ -313,7 +313,7 @@ int main(int argc, char * argv[])
    
     ResourceFinder rf;
     rf.setDefaultContext("emg-processing");
-    rf.setDefaultConfigFile("emg-delsys.ini");
+    rf.setDefaultConfigFile("emg_delsys.ini");
     rf.configure(argc,argv);
   
     if (rf.check("help"))
@@ -321,7 +321,7 @@ int main(int argc, char * argv[])
 		printf("\n");
 		yInfo("[EMGserver] Options:");
         yInfo("  --context           path:   where to find the called resource (default emg-processing).");
-        yInfo("  --from              from:   the name of the .ini file (default emg-delsys.ini).");
+        yInfo("  --from              from:   the name of the .ini file (default emg_delsys.ini).");
         yInfo("  --name              name:   the name of the module (default EMGserver).");
         printf("\n");
 
