@@ -65,7 +65,7 @@ class EMGserverThread: public RateThread
 
         if(isConnected==false)
         {
-            yErr("EMGserver: cannot connect to TCP server of Delsys. Aborting module - please check Delsys before restarting.");
+            yError("EMGserver: cannot connect to TCP server of Delsys. Aborting module - please check Delsys before restarting.");
             return false;
         }
 
@@ -272,7 +272,7 @@ public:
         serverThread = new EMGserverThread(rate,name);
         if(!serverThread->start())
         {
-            yErr("EMGserver: cannot start the server thread. Aborting.");
+            yError("EMGserver: cannot start the server thread. Aborting.");
             delete serverThread;
             return false;
         }
@@ -313,7 +313,7 @@ int main(int argc, char * argv[])
    
     ResourceFinder rf;
     rf.setDefaultContext("emg-processing");
-    rf.setDefaultConfigFile("emg-delsys.ini");
+    rf.setDefaultConfigFile("emg_delsys.ini");
     rf.configure(argc,argv);
   
     if (rf.check("help"))
@@ -321,7 +321,7 @@ int main(int argc, char * argv[])
 		printf("\n");
 		yInfo("[EMGserver] Options:");
         yInfo("  --context           path:   where to find the called resource (default emg-processing).");
-        yInfo("  --from              from:   the name of the .ini file (default emg-delsys.ini).");
+        yInfo("  --from              from:   the name of the .ini file (default emg_delsys.ini).");
         yInfo("  --name              name:   the name of the module (default EMGserver).");
         printf("\n");
 

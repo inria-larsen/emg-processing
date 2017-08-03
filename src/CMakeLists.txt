@@ -6,4 +6,5 @@
 add_subdirectory(EMGserver)
 add_subdirectory(EMGhuman)
 add_subdirectory(EMGhuman2robot)
+add_subdirectory(libraries)
 
