@@ -51,10 +51,6 @@ The module `EMGhuman2robot` is used to retrieve the computed quantities and upda
 
 Firstly the user must guarantee that both the host computer (the one running Delsys software), and the client computer (the one running **emg-processin** modules) are connected to the same network.
 
-Place the sensors in pais of agonist-antagonist muscles:
-
- * (0-1) (2-3) (4-5) (6-7) (8-9) (10-11) (12-13) (14-15);  
- * (BICEPS-TRICEPS) ... 
 
  TODO: Complete with the rest of the procedures ...
 

@@ -1,14 +1,18 @@
 #include "EmgTcp.h"
 
-	EmgTcp::EmgTcp(){
+#define CMD_PORT 50040
+#define IM_EMG_PORT 50043
 
+	EmgTcp::EmgTcp(){
+		cmdPort_ = CMD_PORT;
+		imEmgPort_ = IM_EMG_PORT;		
 	}
 
 	EmgTcp::EmgTcp(std::string servIpAdd)
 	:
 	servIpAdd_(servIpAdd),
-	cmdPort_(50040),
-	imEmgPort_(50043)
+	cmdPort_(CMD_PORT),
+	imEmgPort_(IM_EMG_PORT)
 	{
 
 	}
@@ -28,7 +32,7 @@
 		servIpAdd_ = servIpAdd;
 	}
 
-	void EmgTcp::connect2Server(){
+	bool EmgTcp::connect2Server(){
 		
 		//Initialize addr_ struct
 		const char* cServIpAdd = const_cast<char*>(servIpAdd_.c_str());
@@ -41,11 +45,13 @@
     	}
 
 		//Connect all ports (command, emg data, im_emg, etc...)
-		connectCmdTcp();
-		connectImEmgTcp();
+		bool ok = connectCmdTcp();
+		ok &= connectImEmgTcp();
+
+		return ok;
 	}
 
-	void EmgTcp::connectCmdTcp(){
+	bool EmgTcp::connectCmdTcp(){
 
 		//assign correct port
 		addr_.sin_port = htons(cmdPort_);
@@ -53,31 +59,43 @@
     	//create a socket
 		cmdSock_ = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	 	if (cmdSock_ < 0) {
-			throw std::runtime_error("Problem connecting to server [socket]");
+			yError("Problem connecting to server [socket]");
+			//throw std::runtime_error("Problem connecting to server [socket]");
+			cmdConnected_ = false;
+			return cmdConnected_;
 	   	}
 
 	   	//try to connect
    	    if (connect(cmdSock_, (struct sockaddr*)&addr_, sizeof(addr_)) != 0)
    	    {
 	        closeCmdSock();
-			throw std::runtime_error("Problem connecting to server");
+			// throw std::runtime_error("Problem connecting to server");
+			yError("Problem connecting to cmd port");
+			cmdConnected_ = false;
+			return cmdConnected_;
     	}
 
     	std::cout << std::endl << "Connected to: "<< readCmdReply()->c_str();
     	std::cout << std::endl;
     	cmdConnected_ = true;
+
+    	return cmdConnected_;
+
     	
 	}
+
+
 	void EmgTcp::closeCmdSock(void){
 
 		if(close(cmdSock_) != 0){
-			throw std::runtime_error("Failed to close command socket");
+			//throw std::runtime_error("Failed to close command socket");
+			yFatal("Failed to close command socket");
 		}
 
 		cmdConnected_ = false;
 	}
 
-	void EmgTcp::connectImEmgTcp(){
+	bool EmgTcp::connectImEmgTcp(){
 
 		//assign correct port
 		addr_.sin_port = htons(imEmgPort_);
@@ -85,24 +103,31 @@
     	//create a socket
 		imEmgSock_ = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	 	if (imEmgSock_ < 0) {
-			throw std::runtime_error("Problem connecting to server [socket]");
+			//throw std::runtime_error("Problem connecting to server [socket]");
+			yError("Problem connecting to Emg Port [socket]");
+			imEmgConnected_ = false;
+			return imEmgConnected_;
 	   	}
 
 	   	//try to connect
    	    if (connect(imEmgSock_, (struct sockaddr*)&addr_, sizeof(addr_)) != 0)
    	    {
 	        closeImEmgSock();
-			throw std::runtime_error("Problem connecting to server");
+			//throw std::runtime_error("Problem connecting to server");
+			yError("Problem connecting to Emg Port");
+			imEmgConnected_ = false;
+			return imEmgConnected_;
     	}
 
     	imEmgConnected_ = true;
-    	
+    	return imEmgConnected_;
 	}
 
 	void EmgTcp::closeImEmgSock(void){
 
 		if(close(imEmgSock_) != 0){
-			throw std::runtime_error("Failed to close IM EMG socket");
+			//throw std::runtime_error("Failed to close IM EMG socket");
+			yError("Failed to close IM EMG socket");
 		}
 
 		imEmgConnected_ = false;
@@ -124,11 +149,14 @@
     	return result;
 	}
 
-	void EmgTcp::writeCmd(std::string cmd){
+	int EmgTcp::writeCmd(std::string cmd){
 
 		ssize_t n = send(cmdSock_, cmd.c_str(), strlen(cmd.c_str()), 0); 
-		if (n < 0)	throw std::runtime_error("Problem sending command to server");
+		if (n < 0)	
+			//throw std::runtime_error("Problem sending command to server");
+			yError("Problem sending command to server!");
 
+		return (int) n;
 
 	}
 
@@ -160,7 +188,8 @@
 	std::string  EmgTcp::sendCmd(std::string cmd){
 
 		if(!isCmdConnected()){
-			throw std::runtime_error("Not Connected to Server!");
+			//throw std::runtime_error("Not Connected to Server!");
+			yFatal("Trying to send command but it is NOT connected to Server!");
 		}
 
 		writeCmd(cmd);
@@ -188,7 +217,8 @@
 	void EmgTcp::startDataStream(){
 
 		if(!isImEmgConnected()){
-			throw std::runtime_error("Not Connected to Server data port");
+			//throw std::runtime_error("Not Connected to Server data port");
+			yFatal("Trying to receive data but it is NOT connected to data port!");
 		}
 		
 		//Check if it is streaming
@@ -207,7 +237,8 @@
 	void EmgTcp::stopDataStream(){
 		
 		if(!isImEmgConnected()){
-			throw std::runtime_error("Not Connected to Server data port");
+			//throw std::runtime_error("Not Connected to Server data port");
+			yError("Not Connected to Server data port");
 		}
 
 		//Check if it is streaming

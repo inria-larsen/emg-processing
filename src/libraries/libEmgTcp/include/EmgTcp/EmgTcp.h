@@ -15,6 +15,7 @@
 #include <iostream>
 #include <memory>
 #include <vector>
+#include <yarp/os/all.h>
 
 
 #define SZ_DATA_IM_EMG  (64)
@@ -76,7 +77,7 @@ class EmgTcp{
 		/**
 		 * @brief      Connects to the Delsys SDK TCP server.
 		 */
-		void connect2Server();
+		bool connect2Server();
 		/**
 		 * @brief      Send configuration commands to the command port of the SDK TCP server
 		 */
@@ -102,7 +103,7 @@ class EmgTcp{
 		/**
 		 * @brief      Connects to the command port
 		 */
-		void connectCmdTcp(void);
+		bool connectCmdTcp(void);
         /**
          * @brief      Closes a command sock.
          */
@@ -110,7 +111,7 @@ class EmgTcp{
 		/**
 		 * @brief      Connects to im emg data port.
 		 */
-		void connectImEmgTcp(void);
+		bool connectImEmgTcp(void);
 		/**
 		 * @brief      Closes an im emg data sock.
 		 */
@@ -137,7 +138,7 @@ class EmgTcp{
 		 *
 		 * @param[in]  cmd   The command string
 		 */
-		void writeCmd(std::string cmd); 
+		int writeCmd(std::string cmd); 
 
 		/**
 		 * @brief      Reads a command reply from TCP socket

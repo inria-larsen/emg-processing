@@ -48,12 +48,15 @@ class EMGserverThread: public RateThread
         // current time
         double curTime;
 
+        EmgTcp emgCon;
+
     public: 
 
-    EMGserverThread(const double _period, string _name): RateThread(int(_period*1000.0))
+    EMGserverThread(const double _period, string _name, string ipadd): RateThread(int(_period*1000.0))
     {
         name = _name;
         yInfo("EMGserver: thread created");
+        emgCon.setIpAdd(ipadd);
 
     }
 
@@ -63,8 +66,8 @@ class EMGserverThread: public RateThread
 
         // establishing connection with the TCP server
         
-        EmgTcp emgCon("169.254.1.165");
-        emgCon.connect2Server();
+        // EmgTcp emgCon("169.254.1.165");
+        isConnected = emgCon.connect2Server();
 
 
 
@@ -128,6 +131,8 @@ private:
     string name;
     // rate of the server  hread, expressed in seconds: e.g, 20 ms => 0.02
     double rate;
+
+    string ipAdd_;
 
     // server thread
     EMGserverThread *serverThread;
@@ -236,6 +241,20 @@ public:
         }
     }
 
+    void readValue(ResourceFinder &rf, string s, string &v, string vdefault)
+    {
+        if(rf.check(s.c_str()))
+        {
+            v = rf.find(s.c_str()).asString();
+        }
+        else
+        {
+            v = vdefault;
+            cout<<"Could not find parameters for "<<s<<endl
+                <<"Setting default "<<vdefault<<endl;
+        }
+    }
+
     //---------------------------------------------------------
     void readParams(ResourceFinder &rf, string s, Vector &v, int len)
     {
@@ -267,15 +286,18 @@ public:
             name    = "EMGserver";
         //....................................................
         readValue(rf,"rate",rate,0.01); //10 ms is the default rate for the thread
-        
+                                        // ipAdd_
+                                                
+        readValue(rf,"ip_add",ipAdd_,"169.254.1.165");
 
         cout<<"Parameters from init file: "<<endl;
         DSCPA(name);
         DSCPA(rate);
+        DSCPA(ipAdd_);
        
 
         //creating the thread for the server
-        serverThread = new EMGserverThread(rate,name);
+        serverThread = new EMGserverThread(rate,name,ipAdd_);
         if(!serverThread->start())
         {
             yError("EMGserver: cannot start the server thread. Aborting.");
