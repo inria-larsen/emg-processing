@@ -23,6 +23,7 @@
 #include <iostream>
 #include <stdio.h>
 #include <EmgTcp/EmgTcp.h>
+#include <EmgSignal/EmgSignal.h>
 
 using namespace std;
 using namespace yarp::os;
@@ -34,10 +35,69 @@ using namespace yarp::sig;
 #define DSCPAs(S,V) cout<<"  "<< S <<" : "<<V.toString()<<endl;
 #define DSCPAd(S,V) cout<<"  "<< S <<" : "<<V<<endl;
 
+//==================================================
+//        GLOBAL VARIABLES (synched between threads)
+//==================================================
+std::vector<float> rawData(16,0.0);
+std::vector<float> filteredData(16,0.0);
+Mutex m;
 
-//===============================
-//        EMGserver THREAD
-//===============================
+//======================================================================
+//        EMGserver Sensor THREAD (gets data as soon as it is available)
+//======================================================================
+class SensorThread : public Thread {
+    protected:
+        EmgTcp *emgConPtr_;
+        EmgSignal emgSig; 
+    public:
+        SensorThread( EmgTcp *emgCon){
+            emgConPtr_ = emgCon;
+        }
+        virtual bool threadInit()
+        {
+            printf("Starting SensorThread\n");
+
+/*                   bool isConnected = emgConPtr_->connect2Server();
+
+                    if(isConnected==false)
+                    {
+                        yError("EMGserver: cannot connect to TCP server of Delsys. Aborting module - please check Delsys before restarting.");
+                        return false;
+                    }*/
+            
+            emgConPtr_->configServer();
+            std::cout<<std::endl<<"about to start data stream"<<std::endl;
+
+    //======COMMENT THE START DATA STREAM
+            emgConPtr_->startDataStream(); 
+
+
+            return true;
+        }
+        virtual void run() {
+            while (!isStopping()) {
+                // printf("Hello, from thread1\n");
+                // Time::delay(1);
+                EmgData sample = emgConPtr_->getData();
+                //lock global variables
+                m.lock();
+                    //set global vars
+                    rawData = sample.data;
+                m.unlock();
+                
+            }
+        }
+        virtual void threadRelease()
+        {
+            printf("Goodbye from SensorThread\n");
+            emgConPtr_->stopDataStream(); 
+        }
+};
+
+
+//===============================================
+//        EMGserver Main THREAD (runs every 10ms)
+//===============================================
 
 class EMGserverThread: public RateThread
 {
@@ -49,6 +109,7 @@ class EMGserverThread: public RateThread
         double curTime;
 
         EmgTcp emgCon;
+        SensorThread *sensorTh;
 
     public: 
 
@@ -71,10 +132,19 @@ class EMGserverThread: public RateThread
 
 
 
-
         if(isConnected==false)
         {
             yError("EMGserver: cannot connect to TCP server of Delsys. Aborting module - please check Delsys before restarting.");
+            return false;
+        }
+
+
+        //creating the thread for the sensors
+        sensorTh = new SensorThread(&emgCon);
+        if(!sensorTh->start())
+        {
+            yError("EMGserver: cannot start the sensor thread. Aborting.");
+            delete sensorTh;
             return false;
         }
 
@@ -86,6 +156,9 @@ class EMGserverThread: public RateThread
 
     virtual void threadRelease()
     {
+        //close sensor thread
+        sensorTh->stop();
+        delete sensorTh;
         //closing all the ports
 
         // closing connection with TCP server of Delsys if needed
@@ -100,7 +173,12 @@ class EMGserverThread: public RateThread
         // cyclic operations should be put here!
         curTime = Time::now();
 
+
         // read raw sensors from EMG
+            //lock mutex
+            m.lock();
+            std::cout <<std::endl<<"printing every 10 ms..." << rawData[0];
+            m.unlock(); 
 
         // compute filtered signal
 
@@ -108,11 +186,7 @@ class EMGserverThread: public RateThread
 
         // send output to filtered port
 
-
-
     }
-
-
 
 
 };

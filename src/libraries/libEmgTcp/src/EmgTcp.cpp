@@ -229,7 +229,7 @@
 
 
 		std::cout <<std::endl<< sendCmd("START\r\n\r\n");
-		 getchar();
+		 //getchar();
 		
 		streamingData_= true;
 	}
