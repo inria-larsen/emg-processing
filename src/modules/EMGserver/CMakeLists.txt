@@ -4,8 +4,8 @@ project(${PROJECTNAME})
 
 find_library(EMG_TCP EmgTcp REQUIRED)
 find_library(EMG_SIGNAL EmgSignal REQUIRED)
-set(LIB_EMG_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../libraries/libEmgSignal/include
-		${CMAKE_CURRENT_SOURCE_DIR}/../libraries/libEmgTcp/include )
+set(LIB_EMG_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../libraries/libEmgSignal/include
+		${CMAKE_CURRENT_SOURCE_DIR}/../../libraries/libEmgTcp/include )
 
 include_directories(${YARP_INCLUDE_DIRS} ${LIB_EMG_DIR} include)
     
