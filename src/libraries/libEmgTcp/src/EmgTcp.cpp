@@ -46,6 +46,7 @@
 
 		//Connect all ports (command, emg data, im_emg, etc...)
 		bool ok = connectCmdTcp();
+			if(!ok)	return ok;
 		ok &= connectImEmgTcp();
 
 		return ok;
@@ -263,8 +264,9 @@
 
 		EmgData emgData;
 		char dataBuf[SZ_DATA_IM_EMG];
-
+		int count = 0;
 		while(1){
+			count++;
 			if (recv(imEmgSock_, dataBuf, SZ_DATA_IM_EMG, MSG_PEEK) >= SZ_DATA_IM_EMG){
 				//actually get the data
 				auto nbytes = recv(imEmgSock_, dataBuf, SZ_DATA_IM_EMG, 0);
@@ -275,6 +277,8 @@
                     emgData.data = aux;
 
 				// std::cout << "\n gotdata: "<<nbytes <<" ";
+				//std::cout << "waited for timesteps: " << count;
+				count = 0;
 				return emgData;
 			}
 		}

@@ -39,8 +39,9 @@ using namespace yarp::sig;
 //        GLOBAL VARIABLES (synched between threads)
 //==================================================
 std::vector<float> rawData(16,0.0);
-std::vector<float> filteredData(16,0.0);
+std::vector<double> filteredData(16,0.0);
 Mutex m;
+double firstTimeRef;
 
 //======================================================================
 //        EMGserver Sensor THREAD (gets data as soon as it is available)
@@ -68,22 +69,41 @@ class SensorThread : public Thread {
             emgConPtr_->configServer();
             std::cout<<std::endl<<"about to start data stream"<<std::endl;
 
-    //======COMMENT THE START DATA STREAM
+    //======COMMENT THE START DATA STREAM for now...
             emgConPtr_->startDataStream(); 
 
 
             return true;
         }
         virtual void run() {
+            
+            double curTime, startTime, avgPer;
+            int count = 0;
+
+            startTime = Time::now();
+
             while (!isStopping()) {
-                // printf("Hello, from thread1\n");
-                // Time::delay(1);
+                //printf("\n Hello, from thread1 ");
+                //Time::delay(1);
+                count++;
+                avgPer = (Time::now() - startTime) / count;
+
                 EmgData sample = emgConPtr_->getData();
+                emgSig.setSample(sample, count);
+                    std::vector<double> rmsValues = emgSig.rms();
+
+                    std::vector<double> postFiltered = emgSig.butterworth(rmsValues); 
+
                 //lock global variables
-                m.lock();
+                curTime = Time::now() - firstTimeRef;
+                //LockGuard guard(m);
                     //set global vars
+                m.lock();
                     rawData = sample.data;
+                    filteredData = postFiltered;
                 m.unlock();
+                    std::cout << "\n Time now is:"<<curTime<<" Average period for senTh is "<< avgPer<<" and we have: "<<rawData[0];
+                
                 
             }
         }
@@ -111,9 +131,11 @@ class EMGserverThread: public RateThread
         EmgTcp emgCon;
         SensorThread *sensorTh;
 
+        int count = 0;
+
     public: 
 
-    EMGserverThread(const double _period, string _name, string ipadd): RateThread(int(_period*1000.0))
+    EMGserverThread(const double _period, string _name, string ipadd): RateThread(int(_period/* *1000.0*/))
     {
         name = _name;
         yInfo("EMGserver: thread created");
@@ -128,7 +150,7 @@ class EMGserverThread: public RateThread
         // establishing connection with the TCP server
         
         // EmgTcp emgCon("169.254.1.165");
-        isConnected = emgCon.connect2Server();
+       isConnected = emgCon.connect2Server();
 
 
 
@@ -148,7 +170,7 @@ class EMGserverThread: public RateThread
             return false;
         }
 
-        // opening ports
+        //opening ports
 
         return true;
 
@@ -170,15 +192,21 @@ class EMGserverThread: public RateThread
     //------ RUN -------
     virtual void run()
     {
+        count++;
         // cyclic operations should be put here!
-        curTime = Time::now();
+        curTime = Time::now() - firstTimeRef;
 
 
         // read raw sensors from EMG
+        
+        //if(count%10 == 0){
+            
             //lock mutex
-            m.lock();
-            std::cout <<std::endl<<"printing every 10 ms..." << rawData[0];
-            m.unlock(); 
+            //LockGuard guard(m);
+            //m.lock();
+            std::cout <<"\n printing from EMG  SERVER THREAD " << curTime<< " we have:"<< rawData[0]<<"AND :"<< filteredData[0];
+            //m.unlock(); 
+        //}
 
         // compute filtered signal
 
@@ -436,6 +464,8 @@ int main(int argc, char * argv[])
         yError("YARP server not available!");
         return -1;
     }
+
+    firstTimeRef = Time::now();
 
     EMGserver module;
     module.runModule(rf);
