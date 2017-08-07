@@ -38,34 +38,31 @@ using namespace yarp::sig;
 //==================================================
 //        GLOBAL VARIABLES (synched between threads)
 //==================================================
-std::vector<float> rawData(16,0.0);
-std::vector<double> filteredData(16,0.0);
 Mutex m;
-double firstTimeRef;
 
-//======================================================================
-//        EMGserver Sensor THREAD (gets data as soon as it is available)
-//======================================================================
-class SensorThread : public Thread {
+//===================================================================================
+//        Delsys THREAD (gets data as soon as it is available from Delsys TCP server)
+//===================================================================================
+class DelsysThread : public Thread {
     protected:
         EmgTcp *emgConPtr_;
         EmgSignal emgSig; 
+        
+        std::vector<float> rawData;
+        std::vector<double> filteredData;
+
+        BufferedPort<Bottle> pingTest;
+
     public:
-        SensorThread( EmgTcp *emgCon){
+        DelsysThread( EmgTcp *emgCon){
             emgConPtr_ = emgCon;
+            pingTest.open("/pingTeste");
         }
         virtual bool threadInit()
         {
+            Time::turboBoost();
             printf("Starting SensorThread\n");
 
-/*                   bool isConnected = emgConPtr_->connect2Server();
-
-                    if(isConnected==false)
-                    {
-                        yError("EMGserver: cannot connect to TCP server of Delsys. Aborting module - please check Delsys before restarting.");
-                        return false;
-                    }*/
-            
             emgConPtr_->configServer();
             std::cout<<std::endl<<"about to start data stream"<<std::endl;
 
@@ -75,34 +72,51 @@ class SensorThread : public Thread {
 
             return true;
         }
+
+        std::vector<float> getRawData(){
+            return rawData;
+        }
+
+        std::vector<double> getFilteredData(){
+            return filteredData;
+        }
+
+
         virtual void run() {
             
-            double curTime, startTime, avgPer;
             int count = 0;
 
-            startTime = Time::now();
-
+        long double start = (long double)Time::now();
             while (!isStopping()) {
                 //printf("\n Hello, from thread1 ");
-                //Time::delay(1);
-                count++;
-                avgPer = (Time::now() - startTime) / count;
 
-                EmgData sample = emgConPtr_->getData();
-                emgSig.setSample(sample, count);
-                    std::vector<double> rmsValues = emgSig.rms();
+                
+                if(emgConPtr_->isStreaming() && emgConPtr_->isImEmgConnected() && emgConPtr_->isCmdConnected()){ //check if tcp is connected and streaming
+                    
+                    count++;
 
-                    std::vector<double> postFiltered = emgSig.butterworth(rmsValues); 
+                    EmgData sample = emgConPtr_->getData();
+                    emgSig.setSample(sample, count);
+                        std::vector<double> rmsValues = emgSig.rms();
+                        std::vector<double> postFiltered = emgSig.butterworth(rmsValues); 
 
-                //lock global variables
-                curTime = Time::now() - firstTimeRef;
-                //LockGuard guard(m);
-                    //set global vars
-                m.lock();
-                    rawData = sample.data;
-                    filteredData = postFiltered;
-                m.unlock();
-                    std::cout << "\n Time now is:"<<curTime<<" Average period for senTh is "<< avgPer<<" and we have: "<<rawData[0];
+
+                        long double curTime = (long double)Time::now() - start;
+                        
+                        rawData = sample.data;
+                        filteredData = postFiltered;
+
+                        m.lock();
+                            //std::cout<< endl<<(long double)Time::now() - start;
+                            std::cout << endl<<"[FAST THREAD]"<<curTime<< " filtered data is: " << filteredData[0];
+                        m.unlock();
+
+                    Bottle& testBot = pingTest.prepare();
+                    testBot.clear();
+                    testBot.addDouble(1);
+                    pingTest.write();
+
+                }
                 
                 
             }
@@ -111,6 +125,8 @@ class SensorThread : public Thread {
         {
             printf("Goodbye from SensorThread\n");
             emgConPtr_->stopDataStream(); 
+            pingTest.interrupt();
+            pingTest.close();
         }
 };
 
@@ -125,22 +141,34 @@ class EMGserverThread: public RateThread
 
         // name used for the ports
         string name;
-        // current time
-        double curTime;
 
         EmgTcp emgCon;
-        SensorThread *sensorTh;
+        DelsysThread *delTh;
+        BufferedPort<Bottle> raw;
+        BufferedPort<Bottle> filtered;
+
+        bool streamingRaw_ = false;
+        bool streamingFiltered_ = false;
+
+        int nSensors_ = 0;
 
         int count = 0;
 
     public: 
 
-    EMGserverThread(const double _period, string _name, string ipadd): RateThread(int(_period/* *1000.0*/))
+    EMGserverThread(const double _period, string _name, string ipadd): RateThread(int(_period*1000.0))
     {
         name = _name;
         yInfo("EMGserver: thread created");
         emgCon.setIpAdd(ipadd);
 
+    }
+
+    void startCaptureData(void){
+        emgCon.startDataStream();
+    }
+    void stopCaptureData(void){
+        emgCon.stopDataStream();
     }
 
     virtual bool threadInit()
@@ -161,16 +189,20 @@ class EMGserverThread: public RateThread
         }
 
 
-        //creating the thread for the sensors
-        sensorTh = new SensorThread(&emgCon);
-        if(!sensorTh->start())
+        // //creating the thread for the sensors
+        delTh = new DelsysThread(&emgCon);
+        if(!delTh->start())
         {
             yError("EMGserver: cannot start the sensor thread. Aborting.");
-            delete sensorTh;
+            delete delTh;
             return false;
         }
 
+
         //opening ports
+        raw.open(string("/"+name+"/raw:o").c_str());
+        filtered.open(string("/"+name+"/filtered:o").c_str());
+        
 
         return true;
 
@@ -179,14 +211,26 @@ class EMGserverThread: public RateThread
     virtual void threadRelease()
     {
         //close sensor thread
-        sensorTh->stop();
-        delete sensorTh;
+        delTh->stop();
+        delete delTh;
         //closing all the ports
+        
+        raw.interrupt();
+        raw.close();
+        filtered.interrupt();
+        filtered.close();        
 
         // closing connection with TCP server of Delsys if needed
+        // //------> closing connection with delsys is done by the other thread;
 
         yInfo("EMGserver: thread closing");
 
+    }
+    void setStreaming(bool rawBool, bool filBool, int nsen){
+
+        streamingRaw_ = rawBool;
+        streamingFiltered_ = filBool;
+        nSensors_ = nsen;
     }
 
     //------ RUN -------
@@ -194,26 +238,53 @@ class EMGserverThread: public RateThread
     {
         count++;
         // cyclic operations should be put here!
-        curTime = Time::now() - firstTimeRef;
+        
+        std::vector<float> rawData(16,0.0); 
+        std::vector<double> filteredData(16,0.0); 
 
 
         // read raw sensors from EMG
+        //m.lock();
+            rawData = delTh->getRawData();            
+            filteredData = delTh->getFilteredData();
+        //m.unlock();
+
+        if(rawData.size() > 0){
+
+                if(streamingRaw_){
+                    cout << endl<<"[SLOW THREAD] "<<filteredData[0];
+
+                    // send output to raw port
+                    // 
+                    Bottle& outputRaw = raw.prepare();
+                    outputRaw.clear();
+
+                    for(int ite = 0; ite < nSensors_ ; ite ++ ){
+                        outputRaw.addDouble(rawData[ite]);
+                    }
+                    
+                    raw.write();
+                }
+
+
+                if(streamingFiltered_){
+
+                    // send output to filtered port
+                    // 
+                    Bottle& outputFil = filtered.prepare();
+                    outputFil.clear();
+
+                    for(int ite = 0; ite < nSensors_ ; ite ++ ){
+                        outputFil.addDouble(filteredData[ite]);
+                    }
+
+                    //cout << "writing " << output.toString().c_str() << endl;
+                    filtered.write();
+                    
+                }
+
+        }
         
-        //if(count%10 == 0){
-            
-            //lock mutex
-            //LockGuard guard(m);
-            //m.lock();
-            std::cout <<"\n printing from EMG  SERVER THREAD " << curTime<< " we have:"<< rawData[0]<<"AND :"<< filteredData[0];
-            //m.unlock(); 
-        //}
-
-        // compute filtered signal
-
-        // send output to raw port
-
-        // send output to filtered port
-
     }
 
 
@@ -235,6 +306,11 @@ private:
     double rate;
 
     string ipAdd_;
+
+    bool streamingRaw_ = false;
+    bool streamingFiltered_ = false;
+
+    int nSensors_ = 0;
 
     // server thread
     EMGserverThread *serverThread;
@@ -267,25 +343,35 @@ public:
         ConstString cmd = command.get(0).asString();
         cout<<"first command = "<<cmd<<endl;
 
-        if (cmd=="quit")
+        if (cmd=="quit"){
+            yInfo("\nQuit requested\n Closing now.\n");
+            this->close(); //stops module, closes ports...
             return false;
+        }
+
 
         if (cmd=="list" || cmd=="help")
         {
             reply.clear();
             reply.addString("Here is the list of available commands: ");
+
             return true;
         }  
         else if(cmd=="stop")
         {
-            
+            yInfo("\n stopping data stream");
+            serverThread->stopCaptureData(); 
         }
         else if(cmd=="start")
         {
+            yInfo("\n starting data stream");
+            serverThread->startCaptureData();
 
         } 
         else if(cmd=="status")
         {
+            reply.clear();
+            //reply.addString()
 
         }
         else if(cmd=="filtering")
@@ -343,11 +429,39 @@ public:
         }
     }
 
+    void readValue(ResourceFinder &rf, string s, int &v, int vdefault)
+    {
+        if(rf.check(s.c_str()))
+        {
+            v = rf.find(s.c_str()).asDouble();
+        }
+        else
+        {
+            v = vdefault;
+            cout<<"Could not find parameters for "<<s<<endl
+                <<"Setting default "<<vdefault<<endl;
+        }
+    }    
+
     void readValue(ResourceFinder &rf, string s, string &v, string vdefault)
     {
         if(rf.check(s.c_str()))
         {
             v = rf.find(s.c_str()).asString();
+        }
+        else
+        {
+            v = vdefault;
+            cout<<"Could not find parameters for "<<s<<endl
+                <<"Setting default "<<vdefault<<endl;
+        }
+    }
+
+    void readValue(ResourceFinder &rf, string s, bool &v, bool vdefault)
+    {
+        if(rf.check(s.c_str()))
+        {
+            v = rf.find(s.c_str()).asBool();
         }
         else
         {
@@ -391,6 +505,9 @@ public:
                                         // ipAdd_
                                                 
         readValue(rf,"ip_add",ipAdd_,"169.254.1.165");
+        readValue(rf,"raw",streamingRaw_,true);
+        readValue(rf,"filter",streamingFiltered_,true);
+        readValue(rf,"numberOfSensors",nSensors_,1);
 
         cout<<"Parameters from init file: "<<endl;
         DSCPA(name);
@@ -406,6 +523,8 @@ public:
             delete serverThread;
             return false;
         }
+
+        serverThread->setStreaming(streamingRaw_,streamingFiltered_,nSensors_);
        
     
         //attach a port to the module, so we can send messages
@@ -464,8 +583,6 @@ int main(int argc, char * argv[])
         yError("YARP server not available!");
         return -1;
     }
-
-    firstTimeRef = Time::now();
 
     EMGserver module;
     module.runModule(rf);
