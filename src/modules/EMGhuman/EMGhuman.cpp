@@ -13,9 +13,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
  * Public License for more details
 */
-
-
-
 #include <yarp/sig/Vector.h>
 #include <yarp/os/all.h>
 #include <string>
@@ -23,6 +20,8 @@
 #include <iostream>
 #include <stdio.h>
 #include <deque>
+#include "mainwindow.h"
+#include <QApplication>
 
 using namespace std;
 using namespace yarp::os;
@@ -74,6 +73,10 @@ class EMGhumanThread: public RateThread
         Bottle *outEmg, *outIcc, *outStiffness, *outEffort;
         BufferedPort<Bottle> outPortEmg, outPortIcc, outPortStiffness, outPortEffort;
 
+        //rpc client port
+
+//        RpcClient rpcReq;
+
     public: 
 
     EMGhumanThread(const double _period, string _name): RateThread(int(_period*1000.0))
@@ -91,7 +94,6 @@ class EMGhumanThread: public RateThread
         inPortEmg.open(string("/"+name+"/emg:i").c_str());
         outPortStiffness.open(string("/"+name+"/stiffness_arm:o").c_str());
         outPortIcc.open(string("/"+name+"/icc:o").c_str());
-
 
         return true;
 
@@ -470,16 +472,20 @@ public:
 //---------------------------------------------------------
 int main(int argc, char * argv[])
 {
-   
+    QApplication a(argc,argv);
+    MainWindow w;
+    w.show();
+    a.exec();
+
     ResourceFinder rf;
     rf.setDefaultContext("emg-processing");
     rf.setDefaultConfigFile("human_operator.ini");
     rf.configure(argc,argv);
-  
+
     if (rf.check("help"))
     {
-		printf("\n");
-		yInfo("[EMGhuman] Options:");
+        printf("\n");
+        yInfo("[EMGhuman] Options:");
         yInfo("  --context           path:   where to find the called resource (default emg-processing).");
         yInfo("  --from              from:   the name of the .ini file (default human_operator.ini).");
         yInfo("  --name              name:   the name of the module (default EMGhuman).");
@@ -487,7 +493,7 @@ int main(int argc, char * argv[])
 
         return 0;
     }
-    
+
     Network yarp;
     if (!yarp.checkNetwork())
     {
@@ -497,6 +503,8 @@ int main(int argc, char * argv[])
 
     EMGhuman module;
     module.runModule(rf);
+
+
 
     return 0;
 }
