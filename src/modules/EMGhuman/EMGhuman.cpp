@@ -68,10 +68,10 @@ class EMGhumanThread: public RateThread
         int isCalibrated;
 
         //input ports
-        Bottle inEmg;
+        Bottle *inEmg;
         BufferedPort<Bottle> inPortEmg;
         //output ports
-        Bottle outEmg, outIcc, outStiffness, outEffort;
+        Bottle *outEmg, *outIcc, *outStiffness, *outEffort;
         BufferedPort<Bottle> outPortEmg, outPortIcc, outPortStiffness, outPortEffort;
 
     public: 
@@ -88,6 +88,10 @@ class EMGhumanThread: public RateThread
     {
        
         // opening ports
+        inPortEmg.open(string("/"+name+"/emg:i").c_str());
+        outPortStiffness.open(string("/"+name+"/stiffness_arm:o").c_str());
+        outPortIcc.open(string("/"+name+"/icc:o").c_str());
+
 
         return true;
 
@@ -97,6 +101,14 @@ class EMGhumanThread: public RateThread
     {
         //closing all the ports
 
+        inPortEmg.interrupt();
+        inPortEmg.close();
+
+        outPortStiffness.interrupt();
+        outPortStiffness.close();
+
+        outPortIcc.interrupt();
+        outPortIcc.close();
     
 
         yInfo("EMGhuman: thread closing");
@@ -118,6 +130,11 @@ class EMGhumanThread: public RateThread
         {
             
             // read EMG values from EMG server
+            inEmg = inPortEmg.read();
+                
+            if (inEmg!=NULL) {
+                cout << "[FILTERED EMG] " << inEmg->toString().c_str() << endl;
+            }
 
             // compute stiffness
         

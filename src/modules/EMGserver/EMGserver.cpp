@@ -106,10 +106,11 @@ class DelsysThread : public Thread {
                         rawData = sample.data;
                         filteredData = postFiltered;
 
-                        m.lock();
+                        /*m.lock();
                             //std::cout<< endl<<(long double)Time::now() - start;
                             std::cout << endl<<"[FAST THREAD]"<<curTime<< " filtered data is: " << filteredData[0];
                         m.unlock();
+                        */
 
                     Bottle& testBot = pingTest.prepare();
                     testBot.clear();
@@ -175,12 +176,7 @@ class EMGserverThread: public RateThread
     {
         bool isConnected = false;
 
-        // establishing connection with the TCP server
-        
-        // EmgTcp emgCon("169.254.1.165");
        isConnected = emgCon.connect2Server();
-
-
 
         if(isConnected==false)
         {
@@ -252,7 +248,7 @@ class EMGserverThread: public RateThread
         if(rawData.size() > 0){
 
                 if(streamingRaw_){
-                    cout << endl<<"[SLOW THREAD] "<<filteredData[0];
+                    //cout << endl<<"[SLOW THREAD] "<<filteredData[0];
 
                     // send output to raw port
                     // 
