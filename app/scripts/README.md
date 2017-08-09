@@ -5,7 +5,7 @@ Make a copy of the template file, rename it with the XML extension.
 Modify the file to make it compliant to your installation.
 
 For example, you probably need to change the name of the computation nodes (by default here ``andyNode``).
-If you do not know what a computation node is in yarp, it is a yarprun node that was created to execute programs via yarpmanager. If you don't have a cluster installtion, simply do:
+If you do not know what a computation node is in yarp, it is a yarprun node that was created to execute programs via yarpmanager. If you don't have a cluster installation, simply do:
 
 ```
 yarp namespace /testEMG

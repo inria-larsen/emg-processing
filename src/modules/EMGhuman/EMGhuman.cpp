@@ -48,21 +48,21 @@ class EMGhumanThread: public RateThread
         // status information
         int status, prevStatus;
         // name used for the ports
-        string name;
+        std::string name;
         // current time
         double curTime;
         // stiffness
-        Vector stiffness;
+        std::vector<double> stiffness;
         // icc
-        Vector icc;
+        std::vector<double> icc;
         // effort
-        Vector effort;
+        std::vector<double> effort;
         // max EMG value
-        Vector emg_max, calibration_emg_max;
+        std::vector<double> emg_max, calibration_emg_max;
         // min EMG value
-        Vector emg_min, calibration_emg_min;
+        std::vector<double> emg_min, calibration_emg_min;
         // mean EMG value
-        Vector emg_mean, calibration_emg_mean;
+        std::vector<double> emg_mean, calibration_emg_mean;
         // flag is Calibrated 0=no 1=with default values 2=after calibration procedure
         int isCalibrated;
 
@@ -72,10 +72,6 @@ class EMGhumanThread: public RateThread
         //output ports
         Bottle *outEmg, *outIcc, *outStiffness, *outEffort;
         BufferedPort<Bottle> outPortEmg, outPortIcc, outPortStiffness, outPortEffort;
-
-        //rpc client port
-
-//        RpcClient rpcReq;
 
     public: 
 
@@ -137,6 +133,10 @@ class EMGhumanThread: public RateThread
                 
             if (inEmg!=NULL) {
                 cout << "[INFO] [FILTERED EMG] " << inEmg->toString().c_str() << endl;
+
+//                for (int i=0; i<input->size(); i++) {
+//                    total += input->get(i).asDouble();
+//                }
             }
 
             // compute stiffness
@@ -151,6 +151,7 @@ class EMGhumanThread: public RateThread
             if(status==STATUS_CALIBRATION)
             {
             // do the necessary things for the calibration
+
 
             }
 
@@ -190,7 +191,7 @@ class EMGhumanThread: public RateThread
         return status;
     }
 
-    bool setCalibrationValues(Vector _emg_calib_max, Vector _emg_calib_min)
+    bool setCalibrationValues(std::vector<double> _emg_calib_max, std::vector<double> _emg_calib_min)
     {
         if((calibration_emg_max.size()!=_emg_calib_max.size())||(calibration_emg_min.size()!=_emg_calib_min.size()))
         {
@@ -228,7 +229,7 @@ private:
     // the port to handle messages
     Port rpc; 
     // name of the module, used for creating ports
-    string name;
+    std::string name;
     // rate of the human thread, expressed in seconds: e.g, 20 ms => 0.02
     double rate;
     // calibration 
@@ -238,7 +239,7 @@ private:
     // type of calibration 2=arm2 / 4=arm4 / 8=arm8
     int calibration_type;
     // calibration default values
-    Vector calibration_emg_max, calibration_emg_min;
+    std::vector<double> calibration_emg_max, calibration_emg_min;
     // use filtered data 0=no, 1=rmse, 2=rmse+filtered
     int use_filtered_data;
     // auto-connect to the ports (VERY RISKY)
@@ -246,9 +247,9 @@ private:
     // numbers of sensors that we will use here
     int numberOfSensors;
     // sensors ids
-    Vector sensorIds;
+    std::vector<int> sensorIds;
     // sensor names
-    deque<string> sensorNames;
+    deque<std::string> sensorNames;
 
     // human thread
     EMGhumanThread *humanThread;
@@ -365,8 +366,7 @@ public:
         reply.addString("UNSURE");
         reply.addString(command.get(0).asString());
         reply.addString(command.get(1).asString());
-        // DEBUG: echoes the received messages
-        //reply = command;
+
         return true;
     }
 
@@ -444,19 +444,6 @@ public:
         rpc.open(string("/"+name+"/rpc").c_str());
         attach(rpc);
         yInfo("EMGhuman: RPC port attached");
-
-//        string mystr;
-//        while(mystr.size() == 0){
-//            cout << "Send start command? ";
-
-//            getline (cin, mystr);
-//        }
-
-//        Bottle response,cmd;
-//        cmd.addString(mystr.c_str());
-//        cout<<endl<<"waiting for answer now...";
-//        rpc.write(cmd, response);
-
 
         return true;
     }

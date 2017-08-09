@@ -34,6 +34,7 @@ using namespace yarp::sig;
 #define DSCPAv(V) cout<<"  "<< #V <<" : "<<V.toString()<<endl;
 #define DSCPAs(S,V) cout<<"  "<< S <<" : "<<V.toString()<<endl;
 #define DSCPAd(S,V) cout<<"  "<< S <<" : "<<V<<endl;
+#define DSCPAstdvec(V)  std::cout << "  " << #V << " :"; for(auto vi:V) {std::cout << " " << vi; } std::cout << std::endl;
 
 
 #define FAKE_EMG_DATA   1
@@ -106,6 +107,13 @@ class DelsysThread : public Thread {
                     std::vector<float> fakeRawData(16,1);
                     std::vector<double> fakeFilteredData(16,2);
 
+                    fakeFilteredData[0] = fakeRawData[0] = 1;
+                    fakeFilteredData[1] = fakeRawData[1] = 2;
+                    fakeFilteredData[2] = fakeRawData[2] = 3;
+                    fakeFilteredData[3] = fakeRawData[3] = 4;
+                    fakeFilteredData[4] = fakeRawData[4] = 5;
+                    fakeFilteredData[5] = fakeRawData[5] = 6;
+
                     rawData = fakeRawData;
                     filteredData = fakeFilteredData;
                     Time::delay(1/1111);
@@ -173,19 +181,28 @@ class EMGserverThread: public RateThread
         //bool streamingFiltered_ = false;
         unsigned int status_ = STATUS_STOPPED;
 
+        std::vector<int> senIds_;
+
         int nSensors_ = 0;
 
         int count = 0;
 
     public: 
 
-    EMGserverThread(const double _period, string _name, string ipadd, int status, int nsens): RateThread(int(_period*1000.0))
+    EMGserverThread(const double _period, string _name, string ipadd, int status, int nsens, std::vector<int> senIds)
+        :
+        RateThread(int(_period*1000.0)),
+        name(_name),
+        status_(status),
+        nSensors_(nsens),
+        senIds_(senIds)
+
     {
-        name = _name;
+//        name = _name;
         yInfo("EMGserver: thread created");
         emgCon.setIpAdd(ipadd);
-        status_ = status;
-        nSensors_ = nsens;
+//        status_ = status;
+//        nSensors_ = nsens;
 
     }
 
@@ -292,8 +309,13 @@ class EMGserverThread: public RateThread
                     Bottle& outputRaw = raw.prepare();
                     outputRaw.clear();
 
-                    for(int ite = 0; ite < nSensors_ ; ite ++ ){
-                        outputRaw.addDouble(rawData[ite]);
+//                    for(int ite = 0; ite < nSensors_ ; ite ++ ){
+//                        outputRaw.addDouble(rawData[ite]);
+//                    }
+
+                    for(auto id:senIds_){
+                        outputRaw.addInt(id);
+                        outputRaw.addDouble(rawData[id-1]);
                     }
 
                     raw.write();
@@ -309,8 +331,13 @@ class EMGserverThread: public RateThread
                     Bottle& outputFil = filtered.prepare();
                     outputFil.clear();
 
-                    for(int ite = 0; ite < nSensors_ ; ite ++ ){
-                        outputFil.addDouble(filteredData[ite]);
+//                    for(int ite = 0; ite < nSensors_ ; ite ++ ){
+//                        outputFil.addDouble(filteredData[ite]);
+//                    }
+
+                    for(auto id:senIds_){
+                        outputFil.addInt(id);
+                        outputFil.addDouble(filteredData[id-1]);
                     }
 
                     //cout << "writing " << output.toString().c_str() << endl;
@@ -522,16 +549,13 @@ public:
     }
 
     //---------------------------------------------------------
-    void readParams(ResourceFinder &rf, string s, Vector &v, int len)
+    void readParams(ResourceFinder &rf, string s, std::vector<int> &v)
     {
-        v.resize(len,0.0);
-        cout << "s: " << s << endl;
         if(rf.check(s.c_str()))
         {
             Bottle &grp = rf.findGroup(s.c_str());
-            for (int i=0; i<len; i++)
-                v[i]=grp.get(1+i).asDouble();
-            DSCPAs(s,v);
+            for (int i=0; !grp.get(1+i).isNull(); i++)
+                v.push_back( grp.get(1+i).asInt() );
         }
         else
         {
@@ -556,11 +580,13 @@ public:
 
         bool streamingRaw = false;
         bool streamingFiltered = false;
+        std::vector<int> senIds;
                                                 
         readValue(rf,"ip_add",ipAdd_,"169.254.1.165");
         readValue(rf,"raw",streamingRaw,true);
         readValue(rf,"filter",streamingFiltered,true);
         readValue(rf,"numberOfSensors",nSensors_,1);
+        readParams(rf,"sensorIds", senIds);
 
         if(streamingRaw) SET_BIT(status_,0);
         if(streamingFiltered) SET_BIT(status_,1);
@@ -570,10 +596,12 @@ public:
         DSCPA(name);
         DSCPA(rate);
         DSCPA(ipAdd_);
+
+        DSCPAstdvec(senIds);
        
 
         //creating the thread for the server
-        serverThread = new EMGserverThread(rate,name,ipAdd_,status_,nSensors_);
+        serverThread = new EMGserverThread(rate,name,ipAdd_,status_,nSensors_, senIds);
         if(!serverThread->start())
         {
             yError("EMGserver: cannot start the server thread. Aborting.");
