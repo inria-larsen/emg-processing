@@ -20,7 +20,6 @@ private slots:
 
 private:
     Ui::MainWindow *ui;
-    void testeFn();
 };
 
 #endif // MAINWINDOW_H

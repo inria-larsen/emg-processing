@@ -10,7 +10,7 @@ If you do not know what a computation node is in yarp, it is a yarprun node that
 ```
 yarp namespace /testEMG
 yarpserver
-yarprun --server /andyNode
+yarprun --server /andyNode --log
 ```
 
 to create a yarpserver with a node called /andyNode. 
@@ -19,6 +19,12 @@ To execute the XML file, simply open
 
 ```
 yarpmanager
+```
+
+If you wish to read the modules' logs, you should also run yarplogger:
+
+```
+yarplogger
 ```
 
 then import the XML file. Use the Play/Run button to execute the modules, then click on "Connect" to connect the ports.

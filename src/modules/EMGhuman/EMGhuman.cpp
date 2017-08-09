@@ -20,8 +20,8 @@
 #include <iostream>
 #include <stdio.h>
 #include <deque>
-#include "mainwindow.h"
-#include <QApplication>
+//#include "mainwindow.h"
+//#include <QApplication>
 
 using namespace std;
 using namespace yarp::os;
@@ -82,7 +82,8 @@ class EMGhumanThread: public RateThread
     EMGhumanThread(const double _period, string _name): RateThread(int(_period*1000.0))
     {
         name = _name;
-        status = STATUS_STOPPED;
+        //status = STATUS_STOPPED;
+        status = STATUS_STREAMING;
         yInfo("EMGhuman: thread created");
 
     }
@@ -135,7 +136,7 @@ class EMGhumanThread: public RateThread
             inEmg = inPortEmg.read();
                 
             if (inEmg!=NULL) {
-                cout << "[FILTERED EMG] " << inEmg->toString().c_str() << endl;
+                cout << "[INFO] [FILTERED EMG] " << inEmg->toString().c_str() << endl;
             }
 
             // compute stiffness
@@ -304,6 +305,8 @@ public:
         {
             humanThread->stopStreaming();
             reply.clear(); reply.addString("OK");
+            //cout<<" test";
+            yInfo("test yinfo");
             return true;
         }
         else if(cmd=="start")
@@ -442,6 +445,19 @@ public:
         attach(rpc);
         yInfo("EMGhuman: RPC port attached");
 
+//        string mystr;
+//        while(mystr.size() == 0){
+//            cout << "Send start command? ";
+
+//            getline (cin, mystr);
+//        }
+
+//        Bottle response,cmd;
+//        cmd.addString(mystr.c_str());
+//        cout<<endl<<"waiting for answer now...";
+//        rpc.write(cmd, response);
+
+
         return true;
     }
 
@@ -472,10 +488,10 @@ public:
 //---------------------------------------------------------
 int main(int argc, char * argv[])
 {
-    QApplication a(argc,argv);
-    MainWindow w;
-    w.show();
-    a.exec();
+//    QApplication a(argc,argv);
+//    MainWindow w;
+//    w.show();
+//    a.exec();
 
     ResourceFinder rf;
     rf.setDefaultContext("emg-processing");
@@ -503,6 +519,8 @@ int main(int argc, char * argv[])
 
     EMGhuman module;
     module.runModule(rf);
+
+    cout << endl << "back to main";
 
 
 

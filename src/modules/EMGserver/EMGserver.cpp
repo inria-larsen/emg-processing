@@ -35,6 +35,18 @@ using namespace yarp::sig;
 #define DSCPAs(S,V) cout<<"  "<< S <<" : "<<V.toString()<<endl;
 #define DSCPAd(S,V) cout<<"  "<< S <<" : "<<V<<endl;
 
+
+#define FAKE_EMG_DATA   1
+
+#define STATUS_STOPPED              0x0
+#define STATUS_STREAMING_RAW        0x1
+#define STATUS_STREAMING_FILTERED   0x2
+#define STATUS_STREAMING            0x4
+
+#define CLR_BIT(p,n) ((p) &= ~((1) << (n)))
+#define SET_BIT(p,n) ((p) |= (1 << (n)))
+#define CHECK_BIT(p,n) ((p) & (1<<(n)))
+
 //==================================================
 //        GLOBAL VARIABLES (synched between threads)
 //==================================================
@@ -61,14 +73,14 @@ class DelsysThread : public Thread {
         virtual bool threadInit()
         {
             Time::turboBoost();
-            printf("Starting SensorThread\n");
+            yInfo("Starting SensorThread");
+
+
+        if(!FAKE_EMG_DATA){
 
             emgConPtr_->configServer();
-            std::cout<<std::endl<<"about to start data stream"<<std::endl;
 
-    //======COMMENT THE START DATA STREAM for now...
-            emgConPtr_->startDataStream(); 
-
+        }
 
             return true;
         }
@@ -90,8 +102,15 @@ class DelsysThread : public Thread {
             while (!isStopping()) {
                 //printf("\n Hello, from thread1 ");
 
-                
-                if(emgConPtr_->isStreaming() && emgConPtr_->isImEmgConnected() && emgConPtr_->isCmdConnected()){ //check if tcp is connected and streaming
+                if(FAKE_EMG_DATA){
+                    std::vector<float> fakeRawData(16,1);
+                    std::vector<double> fakeFilteredData(16,2);
+
+                    rawData = fakeRawData;
+                    filteredData = fakeFilteredData;
+                    Time::delay(1/1111);
+                }
+                else if(emgConPtr_->isStreaming() && emgConPtr_->isImEmgConnected() && emgConPtr_->isCmdConnected()){ //check if tcp is connected and streaming
                     
                     count++;
 
@@ -125,7 +144,9 @@ class DelsysThread : public Thread {
         virtual void threadRelease()
         {
             printf("Goodbye from SensorThread\n");
-            emgConPtr_->stopDataStream(); 
+            if(!FAKE_EMG_DATA){
+                emgConPtr_->stopDataStream();
+            }
             pingTest.interrupt();
             pingTest.close();
         }
@@ -148,8 +169,9 @@ class EMGserverThread: public RateThread
         BufferedPort<Bottle> raw;
         BufferedPort<Bottle> filtered;
 
-        bool streamingRaw_ = false;
-        bool streamingFiltered_ = false;
+        //bool streamingRaw_ = false;
+        //bool streamingFiltered_ = false;
+        unsigned int status_ = STATUS_STOPPED;
 
         int nSensors_ = 0;
 
@@ -157,33 +179,42 @@ class EMGserverThread: public RateThread
 
     public: 
 
-    EMGserverThread(const double _period, string _name, string ipadd): RateThread(int(_period*1000.0))
+    EMGserverThread(const double _period, string _name, string ipadd, int status, int nsens): RateThread(int(_period*1000.0))
     {
         name = _name;
         yInfo("EMGserver: thread created");
         emgCon.setIpAdd(ipadd);
+        status_ = status;
+        nSensors_ = nsens;
 
     }
 
-    void startCaptureData(void){
-        emgCon.startDataStream();
+    void startCaptureData(int status){
+        if (!FAKE_EMG_DATA) emgCon.startDataStream();
+        status_ = status;
+
     }
-    void stopCaptureData(void){
-        emgCon.stopDataStream();
+    void stopCaptureData(int status){
+        if (!FAKE_EMG_DATA) emgCon.stopDataStream();
+        status_ = status;
     }
 
     virtual bool threadInit()
     {
         bool isConnected = false;
 
-       isConnected = emgCon.connect2Server();
+       if(!FAKE_EMG_DATA){
 
-        if(isConnected==false)
-        {
-            yError("EMGserver: cannot connect to TCP server of Delsys. Aborting module - please check Delsys before restarting.");
-            return false;
-        }
+           isConnected = emgCon.connect2Server();
 
+            if(isConnected==false)
+            {
+                yError("EMGserver: cannot connect to TCP server of Delsys. Aborting module - please check Delsys before restarting.");
+                return false;
+            }
+
+       }
+       else std::cout << "[WARNING] Sending Fake EMG Data (for debugging/developing)"<<endl;
 
         // //creating the thread for the sensors
         delTh = new DelsysThread(&emgCon);
@@ -192,6 +223,11 @@ class EMGserverThread: public RateThread
             yError("EMGserver: cannot start the sensor thread. Aborting.");
             delete delTh;
             return false;
+        }
+
+        if(CHECK_BIT(status_,2) && !FAKE_EMG_DATA ){
+            yInfo("Trying to stream real emg data");
+            emgCon.startDataStream();
         }
 
 
@@ -222,10 +258,9 @@ class EMGserverThread: public RateThread
         yInfo("EMGserver: thread closing");
 
     }
-    void setStreaming(bool rawBool, bool filBool, int nsen){
+    void setStreaming(int status, int nsen){
 
-        streamingRaw_ = rawBool;
-        streamingFiltered_ = filBool;
+        status_ = status;
         nSensors_ = nsen;
     }
 
@@ -247,23 +282,27 @@ class EMGserverThread: public RateThread
 
         if(rawData.size() > 0){
 
-                if(streamingRaw_){
+//                cout << " [INFO] status: "<< status_;
+
+                if(CHECK_BIT(status_,2) && CHECK_BIT(status_,0)){
                     //cout << endl<<"[SLOW THREAD] "<<filteredData[0];
 
                     // send output to raw port
-                    // 
+                    //
                     Bottle& outputRaw = raw.prepare();
                     outputRaw.clear();
 
                     for(int ite = 0; ite < nSensors_ ; ite ++ ){
                         outputRaw.addDouble(rawData[ite]);
                     }
-                    
+
                     raw.write();
+//                    cout << "[DEBUG] [RAW DATA] "<<outputRaw.toString()<<endl;
                 }
 
+//                cout << " [INFO] status: "<< (status_ ^ (~(STATUS_STREAMING | STATUS_STREAMING_FILTERED)));
 
-                if(streamingFiltered_){
+                if(CHECK_BIT(status_,2) && CHECK_BIT(status_,1)){
 
                     // send output to filtered port
                     // 
@@ -276,6 +315,7 @@ class EMGserverThread: public RateThread
 
                     //cout << "writing " << output.toString().c_str() << endl;
                     filtered.write();
+//                    cout << "[DEBUG] [FIL DATA] "<<outputFil.toString()<<endl;
                     
                 }
 
@@ -303,8 +343,8 @@ private:
 
     string ipAdd_;
 
-    bool streamingRaw_ = false;
-    bool streamingFiltered_ = false;
+
+    unsigned int status_ = STATUS_STOPPED;
 
     int nSensors_ = 0;
 
@@ -350,24 +390,37 @@ public:
         {
             reply.clear();
             reply.addString("Here is the list of available commands: ");
+            reply.addString("start");
+            reply.addString("stop");
+            reply.addString("status");
+            reply.addString("quit");
+
+            cout<<"[INFO] " << reply.toString()<<endl;
 
             return true;
         }  
         else if(cmd=="stop")
         {
             yInfo("\n stopping data stream");
-            serverThread->stopCaptureData(); 
+                status_ &= ~(STATUS_STREAMING);
+                serverThread->stopCaptureData(status_);
+
         }
         else if(cmd=="start")
         {
             yInfo("\n starting data stream");
-            serverThread->startCaptureData();
+
+                status_ |= STATUS_STREAMING;
+                serverThread->startCaptureData(status_);
+
 
         } 
         else if(cmd=="status")
         {
             reply.clear();
-            //reply.addString()
+            reply.addString("Status is: ");
+            reply.addInt(status_);
+            cout<<"[INFO] " << reply.toString()<<endl;
 
         }
         else if(cmd=="filtering")
@@ -394,6 +447,7 @@ public:
             reply.clear();
             reply.addString("ERROR");
             reply.addString("The first item is left/right, to choose the hand.");
+            cout<<"[INFO] " << reply.toString()<<endl;
             return true;
         }
 
@@ -499,11 +553,18 @@ public:
         //....................................................
         readValue(rf,"rate",rate,0.01); //10 ms is the default rate for the thread
                                         // ipAdd_
+
+        bool streamingRaw = false;
+        bool streamingFiltered = false;
                                                 
         readValue(rf,"ip_add",ipAdd_,"169.254.1.165");
-        readValue(rf,"raw",streamingRaw_,true);
-        readValue(rf,"filter",streamingFiltered_,true);
+        readValue(rf,"raw",streamingRaw,true);
+        readValue(rf,"filter",streamingFiltered,true);
         readValue(rf,"numberOfSensors",nSensors_,1);
+
+        if(streamingRaw) SET_BIT(status_,0);
+        if(streamingFiltered) SET_BIT(status_,1);
+        SET_BIT(status_,2);
 
         cout<<"Parameters from init file: "<<endl;
         DSCPA(name);
@@ -512,7 +573,7 @@ public:
        
 
         //creating the thread for the server
-        serverThread = new EMGserverThread(rate,name,ipAdd_);
+        serverThread = new EMGserverThread(rate,name,ipAdd_,status_,nSensors_);
         if(!serverThread->start())
         {
             yError("EMGserver: cannot start the server thread. Aborting.");
@@ -520,7 +581,7 @@ public:
             return false;
         }
 
-        serverThread->setStreaming(streamingRaw_,streamingFiltered_,nSensors_);
+        //serverThread->setStreaming(status_,nSensors_);
        
     
         //attach a port to the module, so we can send messages

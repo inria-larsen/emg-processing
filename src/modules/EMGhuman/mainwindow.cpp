@@ -15,11 +15,6 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-void MainWindow::testeFn(){
-//    std::cout << " teste";
-    qDebug() << " teste";
-}
-
 void MainWindow::on_pushButton_clicked()
 {
     qDebug() <<"teste";
