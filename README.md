@@ -44,6 +44,8 @@ There is a server module, `EMGserver` that is connected to the TCP server of the
 The module `EMGhuman` is used to retrieve the signals (raw or filtered), selecting those that are actually used by the human, and computing some quantities (stiffnes, ICC, effort..).
 The module `EMGhuman2robot` is used to retrieve the computed quantities and update the robot's motion/compliance level according to some pre-defined policies.
 
+TODO: output from emgserver to emghuman modules is ambiguous, separate outputs accordingly; Identify the rest of the inputs and outputs in the architecture image.
+
 ![alt text](https://github.com/inria-larsen/emg-processing/blob/master/doc/img/schema.png "Software concept")
 
 

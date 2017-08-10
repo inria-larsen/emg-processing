@@ -20,6 +20,8 @@
 #include <iostream>
 #include <stdio.h>
 #include <deque>
+//#include <cmath>
+#include <map>
 //#include "mainwindow.h"
 //#include <QApplication>
 
@@ -32,10 +34,14 @@ using namespace yarp::sig;
 #define DSCPAv(V) cout<<"  "<< #V <<" : "<<V.toString()<<endl;
 #define DSCPAs(S,V) cout<<"  "<< S <<" : "<<V.toString()<<endl;
 #define DSCPAd(S,V) cout<<"  "<< S <<" : "<<V<<endl;
+#define DSCPAstdvec(V)  std::cout << "  " << #V << " :"; for(auto vi:V) {std::cout << " " << vi; } std::cout << std::endl;
 
 #define STATUS_STOPPED      0
 #define STATUS_STREAMING    1
 #define STATUS_CALIBRATION  2
+
+//typedef std::pair<int,double> EmgId;
+//typedef  std::map<int,double> EmgMap;
 
 
 //===============================
@@ -49,14 +55,21 @@ class EMGhumanThread: public RateThread
         int status, prevStatus;
         // name used for the ports
         std::string name;
-        // current time
-        double curTime;
+        std::vector<int> sensorIds_;
+        //calibration time
+        double calibDur_;
+        // start time
+        double startTime_ = 0;
         // stiffness
         std::vector<double> stiffness;
         // icc
         std::vector<double> icc;
         // effort
         std::vector<double> effort;
+        // EMG value
+        std::map<int,double> emgMap;
+        // max EMG value (mapped)
+        std::map<int,double> emgMapMax;
         // max EMG value
         std::vector<double> emg_max, calibration_emg_max;
         // min EMG value
@@ -75,11 +88,14 @@ class EMGhumanThread: public RateThread
 
     public: 
 
-    EMGhumanThread(const double _period, string _name): RateThread(int(_period*1000.0))
+    EMGhumanThread(const double _period, string _name, double calibDur, std::vector<int> senId)
+        : RateThread(int(_period*1000.0)),
+          calibDur_(calibDur),
+          name(_name),
+          sensorIds_(senId)
     {
-        name = _name;
-        //status = STATUS_STOPPED;
-        status = STATUS_STREAMING;
+        status = STATUS_STOPPED;
+//        status = STATUS_STREAMING;
         yInfo("EMGhuman: thread created");
 
     }
@@ -118,46 +134,76 @@ class EMGhumanThread: public RateThread
     virtual void run()
     {
         // cyclic operations should be put here!
-        curTime = Time::now();
+//        curTime = Time::now();
 
         if(status==STATUS_STOPPED)
         {
             // probably do nothing
 
         }
-        else
-        {
-            
-            // read EMG values from EMG server
-            inEmg = inPortEmg.read();
-                
-            if (inEmg!=NULL) {
-                cout << "[INFO] [FILTERED EMG] " << inEmg->toString().c_str() << endl;
+        else {
 
-//                for (int i=0; i<input->size(); i++) {
-//                    total += input->get(i).asDouble();
-//                }
-            }
+                // read EMG values from EMG server
+                inEmg = inPortEmg.read();
 
-            // compute stiffness
-        
-            // compute ICC
+                if (inEmg!=NULL) {
+                    cout << "[INFO] [FILTERED EMG] " << inEmg->toString().c_str() << endl;
 
-            // compute effort 
+                    for (int i=0; i<inEmg->size(); i=i+2) {
 
-            // send output to ports
+                        emgMap[inEmg->get(i).asInt()] = inEmg->get(i+1).asDouble();
+//                        cout<<"[DEBUG] : EMG map id: "<< inEmg->get(i).asInt()<< " and value is "<< emgMap[inEmg->get(i).asInt()];
+
+                    }
 
 
-            if(status==STATUS_CALIBRATION)
-            {
-            // do the necessary things for the calibration
+                }
+
+                if(status==STATUS_STREAMING){
 
 
-            }
+                    // compute stiffness
+
+                    // compute ICC
+
+                    // compute effort
+
+                    // send output to ports
+                }
+
+                else if(status==STATUS_CALIBRATION){
+                // do the necessary things for the calibration
+
+                    if(startTime_ == 0) startTime_ = Time::now();
+
+                    double timeDiff =(Time::now() - startTime_);
+//                    std::cout << "[INFO] : " << timeDiff << std::endl;
+
+                    if(timeDiff <= calibDur_){
+
+                        //do something for the calibration
+                        //
+                        //
+                        //...
+
+//                        for(auto& emgIte : emgMap){
+//                           std::cout<<"[INFO] : read the sensor "<<emgIte.first<<" with the value: "<<emgIte.second<<std::endl;
+                            //check if max value for the id exists
+    //                            if not, add value to emgMapMax with the id id
+//                        }
+                    }
+                    else{
+                        startTime_ = 0;
+                        stopCalibration();
+                    }
 
 
-
+                }
         }
+
+
+
+
 
     }
     //end run
@@ -264,7 +310,6 @@ public:
         name="EMGhuman";
         calibration_emg_max.resize(8,0.0); 
         calibration_emg_min.resize(8,0.0);
-        sensorIds.resize(8);
         calibration=false;
         calibration_duration=10.0;
     }
@@ -288,8 +333,10 @@ public:
         ConstString cmd = command.get(0).asString();
         cout<<"first command = "<<cmd<<endl;
 
-        if (cmd=="quit")
+        if (cmd=="quit"){
             return false;
+                        cout<<"[INFO] " << reply.toString()<<endl;
+        }
 
         if (cmd=="list" || cmd=="help")
         {
@@ -300,6 +347,7 @@ public:
             reply.addString("status");
             reply.addString("calibration_from_file");
             reply.addString("calibration_online");
+                        cout<<"[INFO] " << reply.toString()<<endl;
             return true;
         }  
         else if(cmd=="stop")
@@ -307,13 +355,14 @@ public:
             humanThread->stopStreaming();
             reply.clear(); reply.addString("OK");
             //cout<<" test";
-            yInfo("test yinfo");
+                        cout<<"[INFO] " << reply.toString()<<endl;
             return true;
         }
         else if(cmd=="start")
         {
             humanThread->startStreaming();
             reply.clear(); reply.addString("OK");
+                        cout<<"[INFO] " << reply.toString()<<endl;
             return true;
         } 
         else if(cmd=="status")
@@ -325,7 +374,7 @@ public:
             else if(curStatus==STATUS_CALIBRATION) reply.addString(" Status = CALIBRATION");
             else if(curStatus==STATUS_STREAMING) reply.addString(" Status = STREAMING");
             else reply.addString(" Status = IMPOSSIBLE");
-
+                        cout<<"[INFO] " << reply.toString()<<endl;
             return true;
 
         }
@@ -343,6 +392,7 @@ public:
                 reply.clear();
                 reply.addString("Calibration done");
             }
+                        cout<<"[INFO] " << reply.toString()<<endl;
             return true;
             
         }
@@ -351,6 +401,7 @@ public:
             humanThread->startCalibration();
             reply.clear();
             reply.addString("OK");
+                        cout<<"[INFO] " << reply.toString()<<endl;
             return true;
         }
         else
@@ -358,6 +409,7 @@ public:
             reply.clear();
             reply.addString("ERROR");
             reply.addString("The first item is left/right, to choose the hand.");
+                        cout<<"[INFO] " << reply.toString()<<endl;
             return true;
         }
 
@@ -366,6 +418,7 @@ public:
         reply.addString("UNSURE");
         reply.addString(command.get(0).asString());
         reply.addString(command.get(1).asString());
+                    cout<<"[INFO] " << reply.toString()<<endl;
 
         return true;
     }
@@ -387,7 +440,21 @@ public:
                 <<"Setting default "<<vdefault<<endl;
         }
     }
-
+    //---------------------------------------------------------
+    void readParams(ResourceFinder &rf, string s, std::vector<int> &v)
+    {
+        if(rf.check(s.c_str()))
+        {
+            Bottle &grp = rf.findGroup(s.c_str());
+            for (int i=0; !grp.get(1+i).isNull(); i++)
+                v.push_back( grp.get(1+i).asInt() );
+        }
+        else
+        {
+            cout<<"Could not find parameters for "<<s<<endl
+                <<"Setting everything to zero by default"<<endl;
+        }
+    }
     //---------------------------------------------------------
     void readParams(ResourceFinder &rf, string s, Vector &v, int len)
     {
@@ -418,16 +485,19 @@ public:
         else
             name    = "EMGhuman";
         //....................................................
+
         readValue(rf,"rate",rate,0.01); //10 ms is the default rate for the thread
+        readValue(rf,"calibration_duration",calibration_duration,0.01);
+        readParams(rf,"sensorIds",sensorIds);
         
 
         cout<<"Parameters from init file: "<<endl;
         DSCPA(name);
         DSCPA(rate);
-       
+        DSCPAstdvec(sensorIds);
 
         //creating the thread for the server
-        humanThread = new EMGhumanThread(rate,name);
+        humanThread = new EMGhumanThread(rate,name,calibration_duration, sensorIds);
         if(!humanThread->start())
         {
             yError("EMGhuman: cannot start the server thread. Aborting.");
