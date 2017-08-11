@@ -309,10 +309,7 @@ class EMGserverThread: public RateThread
                     Bottle& outputRaw = raw.prepare();
                     outputRaw.clear();
 
-//                    for(int ite = 0; ite < nSensors_ ; ite ++ ){
-//                        outputRaw.addDouble(rawData[ite]);
-//                    }
-
+                    //send only the configured sensors for this application
                     for(auto id:senIds_){
                         outputRaw.addInt(id);
                         outputRaw.addDouble(rawData[id-1]);
@@ -331,10 +328,7 @@ class EMGserverThread: public RateThread
                     Bottle& outputFil = filtered.prepare();
                     outputFil.clear();
 
-//                    for(int ite = 0; ite < nSensors_ ; ite ++ ){
-//                        outputFil.addDouble(filteredData[ite]);
-//                    }
-
+                    //send only the configured sensors for this application
                     for(auto id:senIds_){
                         outputFil.addInt(id);
                         outputFil.addDouble(filteredData[id-1]);
