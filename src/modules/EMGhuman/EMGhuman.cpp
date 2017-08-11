@@ -20,7 +20,6 @@
 #include <iostream>
 #include <stdio.h>
 #include <deque>
-//#include <cmath>
 #include <map>
 #include <algorithm>
 //#include "mainwindow.h"
@@ -35,8 +34,8 @@ using namespace yarp::sig;
 #define DSCPAv(V) cout<<"  "<< #V <<" : "<<V.toString()<<endl;
 #define DSCPAs(S,V) cout<<"  "<< S <<" : "<<V.toString()<<endl;
 #define DSCPAd(S,V) cout<<"  "<< S <<" : "<<V<<endl;
-#define DSCPAstdvec(V)  std::cout << "  " << #V << " :"; for(auto vi:V) {std::cout << " " << vi; } std::cout << std::endl;
-#define DSCPAstdMap(V)  std::cout << "  " << #V << " :"; for(auto& vi:V) {std::cout << " id is " << vi.first << " val is "<<vi.second; } std::cout << std::endl;
+#define DSCPAstdvec(V)  std::cout << "  " << #V << " :"; for(const auto& vi:V) {std::cout << " " << vi; } std::cout << std::endl;
+#define DSCPAstdMap(V)  std::cout << "  " << #V << " :"; for(const auto& vi:V) {std::cout << " id is " << vi.first << " val is "<<vi.second; } std::cout << std::endl;
 
 
 #define STATUS_STOPPED          0
@@ -65,6 +64,8 @@ class EMGhumanThread: public RateThread
         // name used for the ports
         std::string name;
         std::vector<int> sensorIds_;
+        //  id of sensor currently being calibrated for its max value
+        int curCalibId_;
         //calibration time
         double calibDur_;
         // start time
@@ -81,9 +82,9 @@ class EMGhumanThread: public RateThread
 
         // EMG value
         std::map<int,double> emgMap;
-        // max EMG value (mapped)
+        // max EMG value (mapped). This is part of the calibration data.
         std::map<int,double> emgMapMax;
-        // mean EMG value (mapped)
+        // mean EMG value (mapped) for NO MOVEMENT!This is part of the calibration data.
         std::map<int,double> emgMapMean;
         std::map<int,double> emgMapMeanSum;
 
@@ -182,8 +183,11 @@ class EMGhumanThread: public RateThread
 
 
                 }
+                DSCPAstdMap(emgMap);
 
-
+            } else{
+                yWarning("Cant read filtered EMG data");
+                return;
             }
 
             if(status==STATUS_STREAMING){
@@ -199,6 +203,13 @@ class EMGhumanThread: public RateThread
             } else if(status==STATUS_CALIBRATION_MAX){
                 // do the necessary things for the calibration
 
+                if(calibrationStatus_ != CALIB_STATUS_CALIBRATED_MEAN){
+                    yWarning("Trying to do max value calibration, but the mean value calibration has not been done yet.");
+                    startTime_ = 0;
+                    stopCalibrationMax();
+                    return;
+                }
+
                 if(startTime_ == 0) startTime_ = Time::now();
 
                 double timeDiff =(Time::now() - startTime_);
@@ -209,31 +220,49 @@ class EMGhumanThread: public RateThread
                     //do something for the calibration
 
 
+                    //verify if the sensor intended for calibration is available
+                    if(!emgMap.count(curCalibId_)){
+                        //if not, abort the calibration
+                        cout << "[WARNING] Could not find sensor "<<curCalibId_<<" for calibration. Aborting calibration "
+                             << emgMap.count(curCalibId_) <<endl;
+                        stopCalibrationMax();
+                        startTime_ = 0;
+                        return;
+
+                    }
+
                     //iterate through the emg values associated with this human
-                    for(const auto& emgIte : emgMap){
+                    //for(const auto& emgIte : emgMap){
                         //std::cout<<"[INFO] : read the sensor "<<emgIte.first<<" with the value: "<<emgIte.second<<std::endl;
 
                         //Selects Max Value
 
                         //tries to find a max value for a certain id
-                        if(!emgMapMax.count(emgIte.first)){
+                        if(!emgMapMax.count(curCalibId_)){
                             //if no max value was found, add it to the map
-                            emgMapMax[emgIte.first] = emgIte.second;
+                            emgMapMax[curCalibId_] = emgMap[curCalibId_];
 
                         }
                         //in case the value found is smaller than the current...
-                        else if(emgIte.second >= emgMapMax[emgIte.first]){
+                        else if(emgMap[curCalibId_] >= emgMapMax[curCalibId_]){
 
                             //we add the current as the max!
-                            emgMapMax[emgIte.first] = emgIte.second;
+                            emgMapMax[curCalibId_] = emgMap[curCalibId_];
 
                         }
                         //otherwise the max is already there
-                    }
+                   // }
                 } else{
-                    //CHANGE CALIBRATION STATUS
-                    if(calibrationStatus_ == CALIB_STATUS_CALIBRATED_MEAN) calibrationStatus_ = CALIB_STATUS_CALIBRATED_ALL;
-                    else if(calibrationStatus_ == CALIB_STATUS_NOT_CALIBRATED) calibrationStatus_ = CALIB_STATUS_CALIBRATED_MAX;
+
+                    bool ok = true;
+                    for(const auto& senIte:sensorIds_){
+                        ok &= emgMapMax.count(senIte);
+                        cout <<ok<<" "<< senIte <<endl;
+
+                    }
+
+                    //CHANGE CALIBRATION STATUS only if we have calibrated all of the sensors
+                    if(ok)  calibrationStatus_ = CALIB_STATUS_CALIBRATED_ALL;
 
                     startTime_ = 0;
                     stopCalibrationMax();
@@ -286,8 +315,7 @@ class EMGhumanThread: public RateThread
                     }
 
                     //CHANGE CALIBRATION STATUS
-                    if(calibrationStatus_ == CALIB_STATUS_CALIBRATED_MAX) calibrationStatus_ = CALIB_STATUS_CALIBRATED_ALL;
-                    else if(calibrationStatus_ == CALIB_STATUS_NOT_CALIBRATED) calibrationStatus_ = CALIB_STATUS_CALIBRATED_MEAN;
+                    if(calibrationStatus_ != CALIB_STATUS_CALIBRATED_ALL) calibrationStatus_ = CALIB_STATUS_CALIBRATED_MEAN;
 
                     startTime_ = 0;
                     meanValCounter_ = 0;
@@ -328,6 +356,11 @@ class EMGhumanThread: public RateThread
         // go back to the status that was before the calibration (stopped or streaming)
         status=prevStatus;
     }
+
+    void setCalibSenId(int calibSenId){
+        curCalibId_ = calibSenId;
+    }
+
     void startCalibrationMean()
     {
         // save current state as we want to go back to this state after the calibration
@@ -497,10 +530,10 @@ public:
             int curCalibStatus=humanThread->getCalibrationStatus();
 
             reply.clear();
-            if(curCalibStatus==CALIB_STATUS_NOT_CALIBRATED) reply.addString(" Status = NOT CALIBRATED");
-            else if(curCalibStatus==CALIB_STATUS_CALIBRATED_MEAN) reply.addString(" Status = CALIBRATION OF MEAN VALUE ONLY");
-            else if(curCalibStatus==CALIB_STATUS_CALIBRATED_MAX) reply.addString(" Status = CALIBRATED FOR MAX VALUE ONLY");
-            else reply.addString(" Status = CALIBRATED");
+            if(curCalibStatus==CALIB_STATUS_NOT_CALIBRATED) reply.addString(" Calibration Status = NOT CALIBRATED");
+            else if(curCalibStatus==CALIB_STATUS_CALIBRATED_MEAN) reply.addString(" Calibration Status = CALIBRATION OF MEAN VALUE ONLY");
+            else if(curCalibStatus==CALIB_STATUS_CALIBRATED_MAX) reply.addString(" Calibration Status = CALIBRATED FOR MAX VALUE ONLY");
+            else reply.addString(" Calibration Status = CALIBRATED");
                         cout<<"[INFO] " << reply.toString()<<endl;
             return true;
 
@@ -523,15 +556,23 @@ public:
             return true;
             
         }
-        else if(cmd=="calibration_max")
+        else if(cmd=="calibrate_max")
         {
-            humanThread->startCalibrationMax();
-            reply.clear();
-            reply.addString("OK");
+            if(command.size() <= 1){
+                reply.clear();
+                reply.addString("No sensor id input. Please use \"calibrate_max SENSOR_ID_VALUE \" ");
+            } else{
+                int senId = command.get(1).asInt();
+                    cout<<"[INFO] second command: " << senId<<endl;
+                humanThread->setCalibSenId(senId);
+                humanThread->startCalibrationMax();
+                reply.clear();
+                reply.addString("OK");
+            }
                         cout<<"[INFO] " << reply.toString()<<endl;
             return true;
         }
-        else if(cmd=="calibration_mean")
+        else if(cmd=="calibrate_mean")
         {
             humanThread->startCalibrationMean();
             reply.clear();

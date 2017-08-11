@@ -28,6 +28,3 @@ yarplogger
 ```
 
 then import the XML file. Use the Play/Run button to execute the modules, then click on "Connect" to connect the ports.
-
-
-
