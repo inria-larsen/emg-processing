@@ -37,3 +37,5 @@
 build/
 
 CMakeLists\.txt\.user
+
+*.autosave

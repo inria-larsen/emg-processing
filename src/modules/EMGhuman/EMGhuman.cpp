@@ -35,6 +35,7 @@ using namespace yarp::sig;
 #define DSCPAs(S,V) cout<<"  "<< S <<" : "<<V.toString()<<endl;
 #define DSCPAd(S,V) cout<<"  "<< S <<" : "<<V<<endl;
 #define DSCPAstdvec(V)  std::cout << "  " << #V << " :"; for(const auto& vi:V) {std::cout << " " << vi; } std::cout << std::endl;
+#define DSCPAstdvecpair(V)  std::cout << "  " << #V << " :"; for(const auto& vi:V) {std::cout << " (" << vi.first <<"," << vi.second << ") "; } std::cout << std::endl;
 #define DSCPAstdMap(V)  std::cout << "  " << #V << " :"; for(const auto& vi:V) {std::cout << " id is " << vi.first << " val is "<<vi.second; } std::cout << std::endl;
 
 
@@ -63,7 +64,10 @@ class EMGhumanThread: public RateThread
         int status, prevStatus;
         // name used for the ports
         std::string name;
+        // utilizes sensor ids
         std::vector<int> sensorIds_;
+        // icc pairs list, based on sensor ids
+        std::vector<std::pair<int,int>> iccPairs_;
         //  id of sensor currently being calibrated for its max value
         int curCalibId_;
         //calibration time
@@ -88,6 +92,12 @@ class EMGhumanThread: public RateThread
         std::map<int,double> emgMapMean;
         std::map<int,double> emgMapMeanSum;
 
+        //Normalized EMG values
+        std::map<int,double> emgNorm;
+        //mapped icc values in pairs
+        std::map<std::pair<int,int>,double> iccMap;
+
+
 
         // max EMG value
         std::vector<double> emg_max, calibration_emg_max;
@@ -102,16 +112,18 @@ class EMGhumanThread: public RateThread
         Bottle *inEmg;
         BufferedPort<Bottle> inPortEmg;
         //output ports
-        Bottle *outEmg, *outIcc, *outStiffness, *outEffort;
-        BufferedPort<Bottle> outPortEmg, outPortIcc, outPortStiffness, outPortEffort;
+        Bottle *outNorm, *outIcc, *outStiffness, *outEffort;
+        BufferedPort<Bottle> outPortNorm, outPortIcc, outPortStiffness, outPortEffort;
 
     public: 
 
-    EMGhumanThread(const double _period, string _name, double calibDur, std::vector<int> senId)
+    EMGhumanThread(const double _period, string _name, double calibDur,
+                   std::vector<int> senId,std::vector<std::pair<int,int>> iccPairs)
         : RateThread(int(_period*1000.0)),
           calibDur_(calibDur),
           name(_name),
-          sensorIds_(senId)
+          sensorIds_(senId),
+          iccPairs_(iccPairs)
     {
         status = STATUS_STOPPED;
 //        status = STATUS_STREAMING;
@@ -126,6 +138,7 @@ class EMGhumanThread: public RateThread
         inPortEmg.open(string("/"+name+"/emg:i").c_str());
         outPortStiffness.open(string("/"+name+"/stiffness_arm:o").c_str());
         outPortIcc.open(string("/"+name+"/icc:o").c_str());
+        outPortNorm.open(string("/"+name+"/norm:o").c_str());
 
         return true;
 
@@ -143,6 +156,9 @@ class EMGhumanThread: public RateThread
 
         outPortIcc.interrupt();
         outPortIcc.close();
+
+        outPortNorm.interrupt();
+        outPortNorm.close();
     
 
         yInfo("EMGhuman: thread closing");
@@ -192,14 +208,67 @@ class EMGhumanThread: public RateThread
 
             if(status==STATUS_STREAMING){
 
+                //normalize EMG data
+                for(const auto& emgIte:emgMap){
+                    int id = emgIte.first;
+                    double val = emgIte.second;
+
+                    double bias = emgMapMean[id];
+
+                    emgNorm[id] = (val - bias)/(emgMapMax[id]-bias);
+
+                }
+
 
                 // compute stiffness
 
                 // compute ICC
 
+                for(const auto& iccP: iccPairs_){
+                    int id1 = iccP.first;
+                    int id2 = iccP.second;
+
+                    if(emgNorm[id1] <= emgNorm[id2]){
+                        //add the minimum emg normalized value of the pair to the iccMap
+                        iccMap[iccP] = emgNorm[id1];
+                    }
+                }
+
+
+
+
                 // compute effort
 
                 // send output to ports
+
+            //send icc
+                Bottle& b = outPortIcc.prepare();
+
+                b.clear();
+
+                for(const auto& iccPair:iccMap){
+
+                    //send icc pairs to yarp ports
+                    b.addInt(iccPair.first.first);
+                    b.addInt(iccPair.first.second);
+                    b.addDouble(iccPair.second);
+                }
+
+                outPortIcc.write();
+
+            //send normalized values
+                Bottle& b2 = outPortNorm.prepare();
+
+                b2.clear();
+
+                for(const auto& normIte: emgNorm){
+                    b.addInt(normIte.first);
+                    b.addDouble(normIte.second);
+                }
+
+                outPortNorm.write();
+
+
             } else if(status==STATUS_CALIBRATION_MAX){
                 // do the necessary things for the calibration
 
@@ -335,8 +404,12 @@ class EMGhumanThread: public RateThread
 
     void startStreaming()
     {
-        if(calibrationStatus_ != CALIB_STATUS_CALIBRATED_ALL) yWarning("EMGhuman: streaming but not calibrated yet!");
+        if(calibrationStatus_ != CALIB_STATUS_CALIBRATED_ALL) {
+            yError("EMGhuman: Can't stream. Data is not calibrated yet");
+            return;
+        }
         status=STATUS_STREAMING;
+        return;
     }
 
     void stopStreaming()
@@ -457,7 +530,7 @@ public:
         calibration_emg_max.resize(8,0.0); 
         calibration_emg_min.resize(8,0.0);
         calibration=false;
-        calibration_duration=10.0;
+        calibration_duration=5.0;
     }
 
     //---------------------------------------------------------
@@ -632,6 +705,34 @@ public:
         }
     }
     //---------------------------------------------------------
+    /**
+     * @brief readParams Read icc Pairs ids, and traslate it into a vector of pairs
+     * @param rf
+     * @param s
+     * @param v
+     */
+    void readParams(ResourceFinder &rf, string s, std::vector<std::pair<int,int>> &v)
+    {
+        if(rf.check(s.c_str()))
+        {
+            Bottle &grp = rf.findGroup(s.c_str());
+            for (int i=0; !grp.get(2+i).isNull(); i=i+2){
+
+                //v.push_back( grp.get(1+i).asInt() );
+                std::pair<int,int> aux;
+                aux.first = grp.get(1+i).asInt();
+                aux.second = grp.get(2+i).asInt();
+                v.push_back(aux);
+
+            }
+        }
+        else
+        {
+            cout<<"Could not find parameters for "<<s<<endl
+                <<"Setting everything to zero by default"<<endl;
+        }
+    }
+    //---------------------------------------------------------
     void readParams(ResourceFinder &rf, string s, Vector &v, int len)
     {
         v.resize(len,0.0);
@@ -662,18 +763,22 @@ public:
             name    = "EMGhuman";
         //....................................................
 
+        std::vector<std::pair<int,int>> iccPairs;
+
         readValue(rf,"rate",rate,0.01); //10 ms is the default rate for the thread
         readValue(rf,"calibration_duration",calibration_duration,0.01);
         readParams(rf,"sensorIds",sensorIds);
+        readParams(rf,"iccPairs",iccPairs);
         
 
         cout<<"Parameters from init file: "<<endl;
         DSCPA(name);
         DSCPA(rate);
         DSCPAstdvec(sensorIds);
+        DSCPAstdvecpair(iccPairs);
 
         //creating the thread for the server
-        humanThread = new EMGhumanThread(rate,name,calibration_duration, sensorIds);
+        humanThread = new EMGhumanThread(rate,name,calibration_duration, sensorIds, iccPairs);
         if(!humanThread->start())
         {
             yError("EMGhuman: cannot start the server thread. Aborting.");
