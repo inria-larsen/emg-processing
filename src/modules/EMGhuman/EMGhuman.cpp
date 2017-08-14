@@ -193,7 +193,7 @@ class EMGhumanThread: public RateThread
                         emgMap[currentSenId] = inEmg->get(i+1).asDouble();
                         //cout<<"[DEBUG] : [FROM SERVER, STORED] EMG map id: "<< currentSenId<< " and value is "<< emgMap[currentSenId]<<endl;
                     } else {
-                        /* v does not contain x */
+                        /* sensorIds_ does not contain currentSenId */
                         //cout<<"[DEBUG] : [FROM SERVER, NOT STORED] EMG map id: "<< currentSenId<<endl;
                     }
 
@@ -249,6 +249,7 @@ class EMGhumanThread: public RateThread
                 for(const auto& iccPair:iccMap){
 
                     //send icc pairs to yarp ports
+                    //(SENSOR_INDEX_1, SENSOR_INDEX_2, ICC)
                     b.addInt(iccPair.first.first);
                     b.addInt(iccPair.first.second);
                     b.addDouble(iccPair.second);
@@ -262,6 +263,7 @@ class EMGhumanThread: public RateThread
                 b2.clear();
 
                 for(const auto& normIte: emgNorm){
+                    //(SENSOR_INDEX_1, NORM_EMG)
                     b.addInt(normIte.first);
                     b.addDouble(normIte.second);
                 }
@@ -300,10 +302,6 @@ class EMGhumanThread: public RateThread
 
                     }
 
-                    //iterate through the emg values associated with this human
-                    //for(const auto& emgIte : emgMap){
-                        //std::cout<<"[INFO] : read the sensor "<<emgIte.first<<" with the value: "<<emgIte.second<<std::endl;
-
                         //Selects Max Value
 
                         //tries to find a max value for a certain id
@@ -319,8 +317,7 @@ class EMGhumanThread: public RateThread
                             emgMapMax[curCalibId_] = emgMap[curCalibId_];
 
                         }
-                        //otherwise the max is already there
-                   // }
+
                 } else{
 
                     bool ok = true;
@@ -358,15 +355,12 @@ class EMGhumanThread: public RateThread
                     for(const auto& emgIte : emgMap){
 //                        //std::cout<<"[INFO] : read the sensor "<<emgIte.first<<" with the value: "<<emgIte.second<<std::endl;
 
-//                        //Selects Max Value
-
-//                        use 'emgMapMean' to store the sum
+//                        use 'emgMapMeanSum' to store the sum
                         if(!emgMapMeanSum.count(emgIte.first)){
                             cout << " new index"<<" "<<  emgIte.second <<endl;
                             emgMapMeanSum[emgIte.first] = emgIte.second;
 
                         }
-
 
                         //keep summing...
                         emgMapMeanSum[emgIte.first] += emgIte.second;
@@ -394,10 +388,6 @@ class EMGhumanThread: public RateThread
 
             }
         }
-
-
-
-
 
     }
     //end run
@@ -456,29 +446,26 @@ class EMGhumanThread: public RateThread
         return calibrationStatus_;
     }
 
-    bool setCalibrationValues(std::vector<double> _emg_calib_max, std::vector<double> _emg_calib_min)
-    {
-        if((calibration_emg_max.size()!=_emg_calib_max.size())||(calibration_emg_min.size()!=_emg_calib_min.size()))
-        {
-            yWarning("EMGhuman: different size for the calibration parameters that are manually provided. Ignoring calibration.");
-            return false;
-        }
-        calibration_emg_max = _emg_calib_max;
-        calibration_emg_min = _emg_calib_min;
+//    bool setCalibrationValues(std::vector<double> _emg_calib_max, std::vector<double> _emg_calib_min)
+//    {
+//        if((calibration_emg_max.size()!=_emg_calib_max.size())||(calibration_emg_min.size()!=_emg_calib_min.size()))
+//        {
+//            yWarning("EMGhuman: different size for the calibration parameters that are manually provided. Ignoring calibration.");
+//            return false;
+//        }
+//        calibration_emg_max = _emg_calib_max;
+//        calibration_emg_min = _emg_calib_min;
 
-        return true;
-    }
+//        return true;
+//    }
 
-    bool computeCalibration()
-    {
-        //TODO
-        //procedure for calibrating the EMG with the MAX V C
+//    bool computeCalibration()
+//    {
+//        //TODO
+//        //procedure for calibrating the EMG with the MAX V C
 
-        return true;
-    }
-
-
-
+//        return true;
+//    }
 
 };
 
@@ -611,24 +598,24 @@ public:
             return true;
 
         }
-        else if(cmd=="calibration_from_file")
-        {
-            bool ret=humanThread->setCalibrationValues(calibration_emg_max,calibration_emg_min);
-            if(ret==false)
-            {
-                reply.clear();
-                reply.addString("Calibration not done - mismatch in size of max/min values");
-            }
-            else
-            {
-                humanThread->computeCalibration();  
-                reply.clear();
-                reply.addString("Calibration done");
-            }
-                        cout<<"[INFO] " << reply.toString()<<endl;
-            return true;
+//        else if(cmd=="calibration_from_file")
+//        {
+//            bool ret=humanThread->setCalibrationValues(calibration_emg_max,calibration_emg_min);
+//            if(ret==false)
+//            {
+//                reply.clear();
+//                reply.addString("Calibration not done - mismatch in size of max/min values");
+//            }
+//            else
+//            {
+//                humanThread->computeCalibration();
+//                reply.clear();
+//                reply.addString("Calibration done");
+//            }
+//                        cout<<"[INFO] " << reply.toString()<<endl;
+//            return true;
             
-        }
+//        }
         else if(cmd=="calibrate_max")
         {
             if(command.size() <= 1){

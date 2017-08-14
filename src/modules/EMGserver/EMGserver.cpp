@@ -14,8 +14,6 @@
  * Public License for more details
 */
 
-
-
 #include <yarp/sig/Vector.h>
 #include <yarp/os/all.h>
 #include <string>
@@ -29,14 +27,14 @@ using namespace std;
 using namespace yarp::os;
 using namespace yarp::sig;
 
-// utils for printing parameters
+// utils for printing parameters, and data structures
 #define DSCPA(V) cout<<"  "<< #V <<" : "<<V<<endl;
 #define DSCPAv(V) cout<<"  "<< #V <<" : "<<V.toString()<<endl;
 #define DSCPAs(S,V) cout<<"  "<< S <<" : "<<V.toString()<<endl;
 #define DSCPAd(S,V) cout<<"  "<< S <<" : "<<V<<endl;
 #define DSCPAstdvec(V)  std::cout << "  " << #V << " :"; for(auto vi:V) {std::cout << " " << vi; } std::cout << std::endl;
 
-
+//Used to test the modules when the EMG Delsys Sensors are not immediately available
 #define FAKE_EMG_DATA   1
 
 #define STATUS_STOPPED              0x0
@@ -51,26 +49,30 @@ using namespace yarp::sig;
 //==================================================
 //        GLOBAL VARIABLES (synched between threads)
 //==================================================
-Mutex m;
+//Mutex m;
 
-//===================================================================================
-//        Delsys THREAD (gets data as soon as it is available from Delsys TCP server)
-//===================================================================================
+
+/**
+ * @brief The DelsysThread class gets data as soon as it is available from Delsys TCP server
+ */
 class DelsysThread : public Thread {
     protected:
-        EmgTcp *emgConPtr_;
-        EmgSignal emgSig; 
-        
-        std::vector<float> rawData;
-        std::vector<double> filteredData;
 
-        BufferedPort<Bottle> pingTest;
+
+        EmgTcp *emgConPtr_; /*!<Pointer to EmgTcp instance, instanced by EMGserverThread */
+        EmgSignal emgSig;  /*!<Filters the raw signal from the sensors, RMS + Butterworth*/
+        
+        std::vector<float> rawData;/**<Stores the raw data for each one of the 16 sensors*/
+        std::vector<double> filteredData; /**<Stores the filtered data for each one of the 16 sensors*/
+
+        BufferedPort<Bottle> pingTest; /**<Test port used to verify the speed of this DelsysThread*/
 
     public:
         DelsysThread( EmgTcp *emgCon){
             emgConPtr_ = emgCon;
             pingTest.open("/pingTeste");
         }
+
         virtual bool threadInit()
         {
             Time::turboBoost();
@@ -116,7 +118,7 @@ class DelsysThread : public Thread {
 
                     rawData = fakeRawData;
                     filteredData = fakeFilteredData;
-                    Time::delay(1/1111);
+                    Time::delay(1/1111); // same as the delay from the sensors
                 }
                 else if(emgConPtr_->isStreaming() && emgConPtr_->isImEmgConnected() && emgConPtr_->isCmdConnected()){ //check if tcp is connected and streaming
                     
@@ -169,21 +171,20 @@ class EMGserverThread: public RateThread
 {
     protected:
 
-        // name used for the ports
-        string name;
+        string name; /**<Name used for the ports*/
 
-        EmgTcp emgCon;
-        DelsysThread *delTh;
-        BufferedPort<Bottle> raw;
-        BufferedPort<Bottle> filtered;
+        EmgTcp emgCon; /**<Connection to the Delsys Tcp Server*/
+        DelsysThread *delTh; /**<Fast thread to receive and process the data from Delsys Server*/
+        BufferedPort<Bottle> raw; /**<Port that outputs the raw data at a slower rate*/
+        BufferedPort<Bottle> filtered;/**<Port that outputs the raw data at a slower rate*/
 
         //bool streamingRaw_ = false;
         //bool streamingFiltered_ = false;
         unsigned int status_ = STATUS_STOPPED;
 
-        std::vector<int> senIds_;
+        std::vector<int> senIds_;/**<Vector that identifies the sensors that are actually being used*/
 
-        int nSensors_ = 0;
+        int nSensors_ = 0;/**<Number of sensors being used*/
 
         int count = 0;
 
@@ -198,11 +199,8 @@ class EMGserverThread: public RateThread
         senIds_(senIds)
 
     {
-//        name = _name;
         yInfo("EMGserver: thread created");
         emgCon.setIpAdd(ipadd);
-//        status_ = status;
-//        nSensors_ = nsens;
 
     }
 
@@ -275,12 +273,6 @@ class EMGserverThread: public RateThread
         yInfo("EMGserver: thread closing");
 
     }
-    void setStreaming(int status, int nsen){
-
-        status_ = status;
-        nSensors_ = nsen;
-    }
-
     //------ RUN -------
     virtual void run()
     {
@@ -477,8 +469,6 @@ public:
         reply.addString("UNSURE");
         reply.addString(command.get(0).asString());
         reply.addString(command.get(1).asString());
-        // DEBUG: echoes the received messages
-        //reply = command;
         return true;
     }
 
@@ -602,8 +592,6 @@ public:
             delete serverThread;
             return false;
         }
-
-        //serverThread->setStreaming(status_,nSensors_);
        
     
         //attach a port to the module, so we can send messages

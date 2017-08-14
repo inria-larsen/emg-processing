@@ -14,8 +14,6 @@
  * Public License for more details
 */
 
-
-
 #include <yarp/sig/Vector.h>
 #include <yarp/os/all.h>
 #include <string>
