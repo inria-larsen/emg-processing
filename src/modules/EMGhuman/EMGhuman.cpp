@@ -17,6 +17,7 @@
 #include <yarp/os/all.h>
 #include <string>
 #include <fstream>
+#include <sstream>
 #include <iostream>
 #include <stdio.h>
 #include <deque>
@@ -72,8 +73,10 @@ class EMGhumanThread: public RateThread
         int curCalibId_;
         //calibration time
         double calibDur_;
-        // start time
+        // start time for calibration only
         double startTime_ = 0;
+        //Global start time (for every operation)
+        double startTimeGlobal_ = 0;
         // mean value counter
         int meanValCounter_ = 1;
         // stiffness
@@ -97,14 +100,21 @@ class EMGhumanThread: public RateThread
         //mapped icc values in pairs
         std::map<std::pair<int,int>,double> iccMap;
 
+        //log and store output flag
+        bool logStoreData = true;
+        std::ofstream iccLogFile;
+        std::ofstream normEmgLogFile;
 
 
-        // max EMG value
-        std::vector<double> emg_max, calibration_emg_max;
-        // min EMG value
-        std::vector<double> emg_min, calibration_emg_min;
-        // mean EMG value
-        std::vector<double> emg_mean, calibration_emg_mean;
+
+
+
+//        // max EMG value
+//        std::vector<double> emg_max, calibration_emg_max;
+//        // min EMG value
+//        std::vector<double> emg_min, calibration_emg_min;
+//        // mean EMG value
+//        std::vector<double> emg_mean, calibration_emg_mean;
         // Calibration Flag
         int calibrationStatus_ = CALIB_STATUS_NOT_CALIBRATED;
 
@@ -140,6 +150,15 @@ class EMGhumanThread: public RateThread
         outPortIcc.open(string("/"+name+"/icc:o").c_str());
         outPortNorm.open(string("/"+name+"/norm:o").c_str());
 
+        //open log files
+        if(logStoreData){
+            iccLogFile.open("/home/waldez/iccLog.csv");
+            normEmgLogFile.open("/home/waldez/normEmgLog.csv");
+        }
+
+        startTimeGlobal_ = Time::now();
+
+
         return true;
 
     }
@@ -159,7 +178,12 @@ class EMGhumanThread: public RateThread
 
         outPortNorm.interrupt();
         outPortNorm.close();
-    
+
+        //close log files
+        if(logStoreData){
+            iccLogFile.close();
+            normEmgLogFile.close();
+        }
 
         yInfo("EMGhuman: thread closing");
 
@@ -170,6 +194,8 @@ class EMGhumanThread: public RateThread
     {
         // cyclic operations should be put here!
         //        curTime = Time::now();
+
+        double timeDiffGlobal = Time::now() - startTimeGlobal_;
 
         if(status==STATUS_STOPPED)
         {
@@ -199,7 +225,7 @@ class EMGhumanThread: public RateThread
 
 
                 }
-                DSCPAstdMap(emgMap);
+//                DSCPAstdMap(emgMap);
 
             } else{
                 yWarning("Cant read filtered EMG data");
@@ -215,9 +241,18 @@ class EMGhumanThread: public RateThread
 
                     double bias = emgMapMean[id];
 
-                    emgNorm[id] = (val - bias)/(emgMapMax[id]-bias);
+//                    if(emgMapMax[id] != bias){
+//                        emgNorm[id] = (val - bias)/(emgMapMax[id]-bias);
+//                    }
+//                    else{
+//                        emgNorm[id] = 0;
+//                    }
+                    emgNorm[id] = (val)/(emgMapMax[id]);
+
 
                 }
+//                DSCPAstdMap(emgNorm);
+                DSCPAstdMap(emgMap);
 
 
                 // compute stiffness
@@ -232,20 +267,19 @@ class EMGhumanThread: public RateThread
                         //add the minimum emg normalized value of the pair to the iccMap
                         iccMap[iccP] = emgNorm[id1];
                     }
+                    else{
+                        iccMap[iccP] = emgNorm[id2];
+                    }
                 }
 
-
-
-
-                // compute effort
-
-                // send output to ports
+            // send output to ports
 
             //send icc
                 Bottle& b = outPortIcc.prepare();
 
                 b.clear();
 
+                iccLogFile << timeDiffGlobal << ", ";
                 for(const auto& iccPair:iccMap){
 
                     //send icc pairs to yarp ports
@@ -253,7 +287,16 @@ class EMGhumanThread: public RateThread
                     b.addInt(iccPair.first.first);
                     b.addInt(iccPair.first.second);
                     b.addDouble(iccPair.second);
+
+                    if(logStoreData){
+
+                        iccLogFile <<iccPair.first.first<<", "
+                                   << iccPair.first.second<<", "
+                                   << iccPair.second<<", ";
+
+                    }
                 }
+                iccLogFile << std::endl;
 
                 outPortIcc.write();
 
@@ -262,11 +305,19 @@ class EMGhumanThread: public RateThread
 
                 b2.clear();
 
+                normEmgLogFile << timeDiffGlobal<<", ";
                 for(const auto& normIte: emgNorm){
                     //(SENSOR_INDEX_1, NORM_EMG)
                     b.addInt(normIte.first);
                     b.addDouble(normIte.second);
+
+                    if(logStoreData){
+
+                        normEmgLogFile << normIte.first <<", "<< normIte.second<<", ";
+
+                    }
                 }
+                normEmgLogFile << std::endl;
 
                 outPortNorm.write();
 
@@ -274,7 +325,7 @@ class EMGhumanThread: public RateThread
             } else if(status==STATUS_CALIBRATION_MAX){
                 // do the necessary things for the calibration
 
-                if(calibrationStatus_ != CALIB_STATUS_CALIBRATED_MEAN){
+                if((calibrationStatus_ == CALIB_STATUS_NOT_CALIBRATED)){
                     yWarning("Trying to do max value calibration, but the mean value calibration has not been done yet.");
                     startTime_ = 0;
                     stopCalibrationMax();
@@ -332,6 +383,7 @@ class EMGhumanThread: public RateThread
 
                     startTime_ = 0;
                     stopCalibrationMax();
+                    cout<<"[INFO] Max calibration "<<std::endl;
                     DSCPAstdMap(emgMapMax);
                 }
 
@@ -357,7 +409,7 @@ class EMGhumanThread: public RateThread
 
 //                        use 'emgMapMeanSum' to store the sum
                         if(!emgMapMeanSum.count(emgIte.first)){
-                            cout << " new index"<<" "<<  emgIte.second <<endl;
+                            //cout << " new index"<<" "<<  emgIte.first <<endl;
                             emgMapMeanSum[emgIte.first] = emgIte.second;
 
                         }
@@ -485,15 +537,15 @@ private:
     // rate of the human thread, expressed in seconds: e.g, 20 ms => 0.02
     double rate;
     // calibration 
-    bool calibration;
+    //bool calibration;
     // calibration duration
     double calibration_duration;
     // type of calibration 2=arm2 / 4=arm4 / 8=arm8
-    int calibration_type;
+    //int calibration_type;
     // calibration default values
-    std::vector<double> calibration_emg_max, calibration_emg_min;
+    //std::vector<double> calibration_emg_max, calibration_emg_min;
     // use filtered data 0=no, 1=rmse, 2=rmse+filtered
-    int use_filtered_data;
+    //int use_filtered_data;
     // auto-connect to the ports (VERY RISKY)
     bool autoconnect;
     // numbers of sensors that we will use here
@@ -514,9 +566,9 @@ public:
         count=0;
         rate=0.01;
         name="EMGhuman";
-        calibration_emg_max.resize(8,0.0); 
-        calibration_emg_min.resize(8,0.0);
-        calibration=false;
+        //calibration_emg_max.resize(8,0.0);
+        //calibration_emg_min.resize(8,0.0);
+        //calibration=false;
         calibration_duration=5.0;
     }
 
@@ -658,9 +710,6 @@ public:
 
         return true;
     }
-
-
-
 
     //---------------------------------------------------------
     void readValue(ResourceFinder &rf, string s, double &v, double vdefault)
