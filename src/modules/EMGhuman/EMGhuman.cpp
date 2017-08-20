@@ -23,8 +23,6 @@
 #include <deque>
 #include <map>
 #include <algorithm>
-//#include "mainwindow.h"
-//#include <QApplication>
 
 using namespace std;
 using namespace yarp::os;
@@ -43,15 +41,9 @@ using namespace yarp::sig;
 #define STATUS_STOPPED          0
 #define STATUS_STREAMING        1
 #define STATUS_CALIBRATION_MAX  2
-#define STATUS_CALIBRATION_MEAN 3
 
 #define CALIB_STATUS_NOT_CALIBRATED   0
-#define CALIB_STATUS_CALIBRATED_MEAN  1
-#define CALIB_STATUS_CALIBRATED_MAX   2
-#define CALIB_STATUS_CALIBRATED_ALL   3
-
-//typedef std::pair<int,double> EmgId;
-//typedef  std::map<int,double> EmgMap;
+#define CALIB_STATUS_CALIBRATED_ALL   1
 
 
 //===============================
@@ -105,16 +97,6 @@ class EMGhumanThread: public RateThread
         std::ofstream iccLogFile;
         std::ofstream normEmgLogFile;
 
-
-
-
-
-//        // max EMG value
-//        std::vector<double> emg_max, calibration_emg_max;
-//        // min EMG value
-//        std::vector<double> emg_min, calibration_emg_min;
-//        // mean EMG value
-//        std::vector<double> emg_mean, calibration_emg_mean;
         // Calibration Flag
         int calibrationStatus_ = CALIB_STATUS_NOT_CALIBRATED;
 
@@ -239,14 +221,6 @@ class EMGhumanThread: public RateThread
                     int id = emgIte.first;
                     double val = emgIte.second;
 
-                    double bias = emgMapMean[id];
-
-//                    if(emgMapMax[id] != bias){
-//                        emgNorm[id] = (val - bias)/(emgMapMax[id]-bias);
-//                    }
-//                    else{
-//                        emgNorm[id] = 0;
-//                    }
                     emgNorm[id] = (val)/(emgMapMax[id]);
 
 
@@ -325,13 +299,6 @@ class EMGhumanThread: public RateThread
             } else if(status==STATUS_CALIBRATION_MAX){
                 // do the necessary things for the calibration
 
-                if((calibrationStatus_ == CALIB_STATUS_NOT_CALIBRATED)){
-                    yWarning("Trying to do max value calibration, but the mean value calibration has not been done yet.");
-                    startTime_ = 0;
-                    stopCalibrationMax();
-                    return;
-                }
-
                 if(startTime_ == 0) startTime_ = Time::now();
 
                 double timeDiff =(Time::now() - startTime_);
@@ -388,56 +355,6 @@ class EMGhumanThread: public RateThread
                 }
 
 
-            } else if(status==STATUS_CALIBRATION_MEAN){
-
-                // do the necessary things for the calibration
-
-                if(startTime_ == 0) startTime_ = Time::now();
-
-                double timeDiff =(Time::now() - startTime_);
-                //                    std::cout << "[INFO] : " << timeDiff << std::endl;
-
-                if(timeDiff <= calibDur_){
-                    meanValCounter_++;
-
-                    //do something for the calibration
-
-
-//                    //iterate through the emg values associated with this human
-                    for(const auto& emgIte : emgMap){
-//                        //std::cout<<"[INFO] : read the sensor "<<emgIte.first<<" with the value: "<<emgIte.second<<std::endl;
-
-//                        use 'emgMapMeanSum' to store the sum
-                        if(!emgMapMeanSum.count(emgIte.first)){
-                            //cout << " new index"<<" "<<  emgIte.first <<endl;
-                            emgMapMeanSum[emgIte.first] = emgIte.second;
-
-                        }
-
-                        //keep summing...
-                        emgMapMeanSum[emgIte.first] += emgIte.second;
-                    }
-
-
-                } else{
-
-                    //Finally compute the mean;
-                    for(auto& emgIte : emgMapMeanSum){
-                        cout << " sum of values"<<" "<<  emgIte.second <<" and counter "<<meanValCounter_<<endl;
-                        emgMapMean[emgIte.first] = emgIte.second / (meanValCounter_);
-                        emgIte.second = 0;
-
-                    }
-
-                    //CHANGE CALIBRATION STATUS
-                    if(calibrationStatus_ != CALIB_STATUS_CALIBRATED_ALL) calibrationStatus_ = CALIB_STATUS_CALIBRATED_MEAN;
-
-                    startTime_ = 0;
-                    meanValCounter_ = 0;
-                    stopCalibrationMean();
-                    DSCPAstdMap(emgMapMean);
-                }
-
             }
         }
 
@@ -476,19 +393,6 @@ class EMGhumanThread: public RateThread
         curCalibId_ = calibSenId;
     }
 
-    void startCalibrationMean()
-    {
-        // save current state as we want to go back to this state after the calibration
-        prevStatus=status;
-        status=STATUS_CALIBRATION_MEAN;
-    }
-
-    void stopCalibrationMean()
-    {
-        // go back to the status that was before the calibration (stopped or streaming)
-        status=prevStatus;
-    }
-
     int getStatus()
     {
         return status;
@@ -498,26 +402,6 @@ class EMGhumanThread: public RateThread
         return calibrationStatus_;
     }
 
-//    bool setCalibrationValues(std::vector<double> _emg_calib_max, std::vector<double> _emg_calib_min)
-//    {
-//        if((calibration_emg_max.size()!=_emg_calib_max.size())||(calibration_emg_min.size()!=_emg_calib_min.size()))
-//        {
-//            yWarning("EMGhuman: different size for the calibration parameters that are manually provided. Ignoring calibration.");
-//            return false;
-//        }
-//        calibration_emg_max = _emg_calib_max;
-//        calibration_emg_min = _emg_calib_min;
-
-//        return true;
-//    }
-
-//    bool computeCalibration()
-//    {
-//        //TODO
-//        //procedure for calibrating the EMG with the MAX V C
-
-//        return true;
-//    }
 
 };
 
@@ -566,9 +450,6 @@ public:
         count=0;
         rate=0.01;
         name="EMGhuman";
-        //calibration_emg_max.resize(8,0.0);
-        //calibration_emg_min.resize(8,0.0);
-        //calibration=false;
         calibration_duration=5.0;
     }
 
@@ -629,7 +510,6 @@ public:
 
             reply.clear();
             if(curStatus==STATUS_STOPPED) reply.addString(" Status = STOPPED");
-            else if(curStatus==STATUS_CALIBRATION_MEAN) reply.addString(" Status = CALIBRATION OF MEAN VALUE ONLY");
             else if(curStatus==STATUS_CALIBRATION_MAX) reply.addString(" Status = CALIBRATION OF MAX VALUE ONLY");
             else if(curStatus==STATUS_STREAMING) reply.addString(" Status = STREAMING");
             else reply.addString(" Status = IMPOSSIBLE");
@@ -643,31 +523,12 @@ public:
 
             reply.clear();
             if(curCalibStatus==CALIB_STATUS_NOT_CALIBRATED) reply.addString(" Calibration Status = NOT CALIBRATED");
-            else if(curCalibStatus==CALIB_STATUS_CALIBRATED_MEAN) reply.addString(" Calibration Status = CALIBRATION OF MEAN VALUE ONLY");
-            else if(curCalibStatus==CALIB_STATUS_CALIBRATED_MAX) reply.addString(" Calibration Status = CALIBRATED FOR MAX VALUE ONLY");
             else reply.addString(" Calibration Status = CALIBRATED");
                         cout<<"[INFO] " << reply.toString()<<endl;
             return true;
 
         }
-//        else if(cmd=="calibration_from_file")
-//        {
-//            bool ret=humanThread->setCalibrationValues(calibration_emg_max,calibration_emg_min);
-//            if(ret==false)
-//            {
-//                reply.clear();
-//                reply.addString("Calibration not done - mismatch in size of max/min values");
-//            }
-//            else
-//            {
-//                humanThread->computeCalibration();
-//                reply.clear();
-//                reply.addString("Calibration done");
-//            }
-//                        cout<<"[INFO] " << reply.toString()<<endl;
-//            return true;
-            
-//        }
+
         else if(cmd=="calibrate_max")
         {
             if(command.size() <= 1){
@@ -681,14 +542,6 @@ public:
                 reply.clear();
                 reply.addString("OK");
             }
-                        cout<<"[INFO] " << reply.toString()<<endl;
-            return true;
-        }
-        else if(cmd=="calibrate_mean")
-        {
-            humanThread->startCalibrationMean();
-            reply.clear();
-            reply.addString("OK");
                         cout<<"[INFO] " << reply.toString()<<endl;
             return true;
         }
@@ -742,7 +595,7 @@ public:
     }
     //---------------------------------------------------------
     /**
-     * @brief readParams Read icc Pairs ids, and traslate it into a vector of pairs
+     * @brief readParams Read icc Pairs ids, and translate it into a vector of pairs
      * @param rf
      * @param s
      * @param v
@@ -862,10 +715,6 @@ public:
 //---------------------------------------------------------
 int main(int argc, char * argv[])
 {
-//    QApplication a(argc,argv);
-//    MainWindow w;
-//    w.show();
-//    a.exec();
 
     ResourceFinder rf;
     rf.setDefaultContext("emg-processing");
@@ -895,8 +744,6 @@ int main(int argc, char * argv[])
     module.runModule(rf);
 
     cout << endl << "back to main";
-
-
 
     return 0;
 }

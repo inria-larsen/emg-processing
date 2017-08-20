@@ -35,7 +35,7 @@ using namespace yarp::sig;
 #define DSCPAstdvec(V)  std::cout << "  " << #V << " :"; for(auto vi:V) {std::cout << " " << vi; } std::cout << std::endl;
 
 //Used to test the modules when the EMG Delsys Sensors are not immediately available
-#define FAKE_EMG_DATA   0
+#define FAKE_EMG_DATA   1
 
 #define STATUS_STOPPED              0x0
 #define STATUS_STREAMING_RAW        0x1
@@ -326,7 +326,6 @@ class EMGserverThread: public RateThread
                         outputFil.addDouble(filteredData[id-1]);
                     }
 
-                    //cout << "writing " << output.toString().c_str() << endl;
                     filtered.write();
 //                    cout << "[DEBUG] [FIL DATA] "<<outputFil.toString()<<endl;
                     

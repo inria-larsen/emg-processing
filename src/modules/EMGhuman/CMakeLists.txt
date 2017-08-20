@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0.2)
 set(PROJECTNAME EMGhuman)
 project(${PROJECTNAME})
 
-find_package (Qt5Widgets)
+#find_package (Qt5Widgets)
 
 include_directories(${YARP_INCLUDE_DIRS} include)
 
