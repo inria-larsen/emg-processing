@@ -13,30 +13,16 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
  * Public License for more details
 */
-#include <yarp/sig/Vector.h>
-#include <yarp/os/all.h>
-#include <string>
 #include <fstream>
 #include <sstream>
 #include <iostream>
-#include <stdio.h>
-#include <deque>
-#include <map>
 #include <algorithm>
+#include <emgutils.h>
 
 using namespace std;
 using namespace yarp::os;
 using namespace yarp::sig;
-
-// utils for printing parameters
-#define DSCPA(V) cout<<"  "<< #V <<" : "<<V<<endl;
-#define DSCPAv(V) cout<<"  "<< #V <<" : "<<V.toString()<<endl;
-#define DSCPAs(S,V) cout<<"  "<< S <<" : "<<V.toString()<<endl;
-#define DSCPAd(S,V) cout<<"  "<< S <<" : "<<V<<endl;
-#define DSCPAstdvec(V)  std::cout << "  " << #V << " :"; for(const auto& vi:V) {std::cout << " " << vi; } std::cout << std::endl;
-#define DSCPAstdvecpair(V)  std::cout << "  " << #V << " :"; for(const auto& vi:V) {std::cout << " (" << vi.first <<"," << vi.second << ") "; } std::cout << std::endl;
-#define DSCPAstdMap(V)  std::cout << "  " << #V << " :"; for(const auto& vi:V) {std::cout << " id is " << vi.first << " val is "<<vi.second; } std::cout << std::endl;
-
+using namespace EmgUtils;
 
 #define STATUS_STOPPED          0
 #define STATUS_STREAMING        1
@@ -484,8 +470,8 @@ public:
             reply.addString("stop");
             reply.addString("start");
             reply.addString("status");
-            reply.addString("calibration_from_file");
-            reply.addString("calibration_online");
+            reply.addString("calibration_status");
+            reply.addString("calibrate_max #SENSOR_ID");
                         cout<<"[INFO] " << reply.toString()<<endl;
             return true;
         }  
@@ -563,83 +549,6 @@ public:
 
         return true;
     }
-
-    //---------------------------------------------------------
-    void readValue(ResourceFinder &rf, string s, double &v, double vdefault)
-    {
-        if(rf.check(s.c_str()))
-        {
-            v = rf.find(s.c_str()).asDouble();
-        }
-        else
-        {
-            v = vdefault;
-            cout<<"Could not find parameters for "<<s<<endl
-                <<"Setting default "<<vdefault<<endl;
-        }
-    }
-    //---------------------------------------------------------
-    void readParams(ResourceFinder &rf, string s, std::vector<int> &v)
-    {
-        if(rf.check(s.c_str()))
-        {
-            Bottle &grp = rf.findGroup(s.c_str());
-            for (int i=0; !grp.get(1+i).isNull(); i++)
-                v.push_back( grp.get(1+i).asInt() );
-        }
-        else
-        {
-            cout<<"Could not find parameters for "<<s<<endl
-                <<"Setting everything to zero by default"<<endl;
-        }
-    }
-    //---------------------------------------------------------
-    /**
-     * @brief readParams Read icc Pairs ids, and translate it into a vector of pairs
-     * @param rf
-     * @param s
-     * @param v
-     */
-    void readParams(ResourceFinder &rf, string s, std::vector<std::pair<int,int>> &v)
-    {
-        if(rf.check(s.c_str()))
-        {
-            Bottle &grp = rf.findGroup(s.c_str());
-            for (int i=0; !grp.get(2+i).isNull(); i=i+2){
-
-                //v.push_back( grp.get(1+i).asInt() );
-                std::pair<int,int> aux;
-                aux.first = grp.get(1+i).asInt();
-                aux.second = grp.get(2+i).asInt();
-                v.push_back(aux);
-
-            }
-        }
-        else
-        {
-            cout<<"Could not find parameters for "<<s<<endl
-                <<"Setting everything to zero by default"<<endl;
-        }
-    }
-    //---------------------------------------------------------
-    void readParams(ResourceFinder &rf, string s, Vector &v, int len)
-    {
-        v.resize(len,0.0);
-        cout << "s: " << s << endl;
-        if(rf.check(s.c_str()))
-        {
-            Bottle &grp = rf.findGroup(s.c_str());
-            for (int i=0; i<len; i++)
-                v[i]=grp.get(1+i).asDouble();
-            DSCPAs(s,v);
-        }
-        else
-        {
-            cout<<"Could not find parameters for "<<s<<endl
-                <<"Setting everything to zero by default"<<endl;
-        }
-    }
-
 
     //---------------------------------------------------------
     virtual bool configure(ResourceFinder &rf)

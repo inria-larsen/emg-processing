@@ -14,25 +14,17 @@
  * Public License for more details
 */
 
-#include <yarp/sig/Vector.h>
-#include <yarp/os/all.h>
-#include <string>
 #include <fstream>
 #include <iostream>
-#include <stdio.h>
-#include <EmgTcp/EmgTcp.h>
-#include <EmgSignal/EmgSignal.h>
+#include "EmgTcp.h"
+#include "EmgSignal.h"
+#include "emgutils.h"
 
 using namespace std;
 using namespace yarp::os;
 using namespace yarp::sig;
+using namespace EmgUtils;
 
-// utils for printing parameters, and data structures
-#define DSCPA(V) cout<<"  "<< #V <<" : "<<V<<endl;
-#define DSCPAv(V) cout<<"  "<< #V <<" : "<<V.toString()<<endl;
-#define DSCPAs(S,V) cout<<"  "<< S <<" : "<<V.toString()<<endl;
-#define DSCPAd(S,V) cout<<"  "<< S <<" : "<<V<<endl;
-#define DSCPAstdvec(V)  std::cout << "  " << #V << " :"; for(auto vi:V) {std::cout << " " << vi; } std::cout << std::endl;
 
 //Used to test the modules when the EMG Delsys Sensors are not immediately available
 #define FAKE_EMG_DATA   1
@@ -293,7 +285,7 @@ class EMGserverThread: public RateThread
 
 //                cout << " [INFO] status: "<< status_;
 
-                if(CHECK_BIT(status_,2) && CHECK_BIT(status_,0)){
+                if(CHECK_BIT(status_,2) && CHECK_BIT(status_,0)){ //if streaming raw data
                     //cout << endl<<"[SLOW THREAD] "<<filteredData[0];
 
                     // send output to raw port
@@ -311,9 +303,8 @@ class EMGserverThread: public RateThread
 //                    cout << "[DEBUG] [RAW DATA] "<<outputRaw.toString()<<endl;
                 }
 
-//                cout << " [INFO] status: "<< (status_ ^ (~(STATUS_STREAMING | STATUS_STREAMING_FILTERED)));
 
-                if(CHECK_BIT(status_,2) && CHECK_BIT(status_,1)){
+                if(CHECK_BIT(status_,2) && CHECK_BIT(status_,1)){ //if streaming filtered
 
                     // send output to filtered port
                     // 
@@ -469,82 +460,6 @@ public:
         reply.addString(command.get(0).asString());
         reply.addString(command.get(1).asString());
         return true;
-    }
-
-
-
-
-    //---------------------------------------------------------
-    void readValue(ResourceFinder &rf, string s, double &v, double vdefault)
-    {
-        if(rf.check(s.c_str()))
-        {
-            v = rf.find(s.c_str()).asDouble();
-        }
-        else
-        {
-            v = vdefault;
-            cout<<"Could not find parameters for "<<s<<endl
-                <<"Setting default "<<vdefault<<endl;
-        }
-    }
-
-    void readValue(ResourceFinder &rf, string s, int &v, int vdefault)
-    {
-        if(rf.check(s.c_str()))
-        {
-            v = rf.find(s.c_str()).asDouble();
-        }
-        else
-        {
-            v = vdefault;
-            cout<<"Could not find parameters for "<<s<<endl
-                <<"Setting default "<<vdefault<<endl;
-        }
-    }    
-
-    void readValue(ResourceFinder &rf, string s, string &v, string vdefault)
-    {
-        if(rf.check(s.c_str()))
-        {
-            v = rf.find(s.c_str()).asString();
-        }
-        else
-        {
-            v = vdefault;
-            cout<<"Could not find parameters for "<<s<<endl
-                <<"Setting default "<<vdefault<<endl;
-        }
-    }
-
-    void readValue(ResourceFinder &rf, string s, bool &v, bool vdefault)
-    {
-        if(rf.check(s.c_str()))
-        {
-            v = rf.find(s.c_str()).asBool();
-        }
-        else
-        {
-            v = vdefault;
-            cout<<"Could not find parameters for "<<s<<endl
-                <<"Setting default "<<vdefault<<endl;
-        }
-    }
-
-    //---------------------------------------------------------
-    void readParams(ResourceFinder &rf, string s, std::vector<int> &v)
-    {
-        if(rf.check(s.c_str()))
-        {
-            Bottle &grp = rf.findGroup(s.c_str());
-            for (int i=0; !grp.get(1+i).isNull(); i++)
-                v.push_back( grp.get(1+i).asInt() );
-        }
-        else
-        {
-            cout<<"Could not find parameters for "<<s<<endl
-                <<"Setting everything to zero by default"<<endl;
-        }
     }
 
 
