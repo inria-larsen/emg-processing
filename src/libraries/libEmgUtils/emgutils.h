@@ -22,7 +22,7 @@ using namespace yarp::sig;
 #define DSCPAstdMap(V)  std::cout << "  " << #V << " :"; for(const auto& vi:V) {std::cout << " id is " << vi.first << " val is "<<vi.second; } std::cout << std::endl;
 
 namespace EmgUtils {
-
+    // functions to read parameters from a 'ResourceFinder' object
     void readParams(ResourceFinder &rf, string s, std::vector<int> &v);
     void readParams(ResourceFinder &rf, string s, std::vector<std::pair<int, int> > &v);
     void readParams(ResourceFinder &rf, string s, Vector &v, int len);

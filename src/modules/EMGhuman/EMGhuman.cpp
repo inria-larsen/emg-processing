@@ -520,6 +520,11 @@ public:
             if(command.size() <= 1){
                 reply.clear();
                 reply.addString("No sensor id input. Please use \"calibrate_max SENSOR_ID_VALUE \" ");
+            } else if(humanThread->getStatus() == STATUS_CALIBRATION_MAX){
+
+                reply.clear();
+                reply.addString("There is a sensor already being calibrated, please wait.");
+
             } else{
                 int senId = command.get(1).asInt();
                     cout<<"[INFO] second command: " << senId<<endl;
