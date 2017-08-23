@@ -1,5 +1,5 @@
 import QtQuick 2.0
-import QtQuick.Controls 2.2
+import QtQuick.Controls 1.2
 import QtQuick.Controls.Styles 1.4
 
 Item {
@@ -63,12 +63,13 @@ Item {
         width: 150
         height: 30
         text: "Calibrate"
-        font.pointSize: 19
+//        font.pointSize: 19
+
         anchors.centerIn: parent
 //        style:
 
 
-        onReleased: {
+        onClicked: {
             //call calibration for this sensorId
         }
     }

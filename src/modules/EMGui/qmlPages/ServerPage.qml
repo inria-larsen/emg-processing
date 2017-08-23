@@ -1,5 +1,5 @@
 import QtQuick 2.0
-import QtQuick.Controls 2.2
+import QtQuick.Controls 1.2
 
 Item {
     width: mainWin.width
@@ -11,7 +11,7 @@ Item {
         anchors.centerIn: parent
         text: isConnectedStreaming ? qsTr("Stop and Disconnect from Delsys") : qsTr("Connect to Delsys and Start")
 //        height: 100
-        onReleased: {
+        onClicked: {
             yarpRequest = true
         }
     }

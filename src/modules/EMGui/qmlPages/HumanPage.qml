@@ -1,6 +1,6 @@
 import QtQuick 2.0
-import QtQuick.Controls 2.2
-import QtQuick.Layouts 1.3
+import QtQuick.Controls 1.2
+import QtQuick.Layouts 1.0
 
 Item {
         width: mainWin.width
@@ -21,7 +21,7 @@ Item {
             Layout.preferredWidth: 200
             text: "Calibrate"
             Layout.alignment: Qt.AlignCenter
-            onReleased: {
+            onClicked: {
 //                stackView.push({item: Calibration, properties: {humanType: "collaborator"}})
                 stackView.push(Qt.resolvedUrl("Calibration.qml"));
             }
@@ -48,7 +48,7 @@ Item {
             text: "Calibrate"
             Layout.preferredWidth: 200
             Layout.alignment: Qt.AlignCenter
-            onReleased: {
+            onClicked: {
 //                stackView.push({item: Calibration, properties: {humanType: "operator"}})
                 stackView.push(Qt.resolvedUrl("Calibration.qml"));
             }

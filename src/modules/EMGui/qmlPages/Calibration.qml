@@ -17,6 +17,7 @@ Item {
         width:500
         height:500
         anchors.top:parent.top
+        anchors.topMargin: 20
         anchors.horizontalCenter: parent.horizontalCenter
         Text {
             anchors.centerIn: parent
