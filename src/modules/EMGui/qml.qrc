@@ -7,5 +7,6 @@
         <file>qmlPages/Calibration.qml</file>
         <file>delegates/MenuDelegate.qml</file>
         <file>delegates/CalibrationDelegate.qml</file>
+        <file>qmlPages/EmgLevelBar.qml</file>
     </qresource>
 </RCC>

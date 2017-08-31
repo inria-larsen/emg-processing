@@ -120,8 +120,8 @@ class EMGhumanThread: public RateThread
 
         //open log files
         if(logStoreData){
-            iccLogFile.open("/home/waldez/iccLog.csv");
-            normEmgLogFile.open("/home/waldez/normEmgLog.csv");
+            iccLogFile.open(string("/home/waldez/"+name+"iccLog.csv").c_str());
+            normEmgLogFile.open(string("/home/waldez/"+name+"normEmgLog.csv").c_str());
         }
 
         startTimeGlobal_ = Time::now();

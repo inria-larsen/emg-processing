@@ -66,5 +66,16 @@ Item {
             }
         }
     }
+        ProgressBar {
+            id:mvcLevel
+            width: 500
+            height: 50
+            anchors.bottomMargin: 225
+            anchors.left: muscleImg.right
+            anchors.leftMargin: -200
+            anchors.bottom: muscleImg.bottom
+            rotation: -90
+            value: 0.85
+        }
 
 }
