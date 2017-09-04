@@ -8,6 +8,8 @@ Item {
     height: mainWin.height
 
     property string humanType: "operator"
+    property int timerCountDown: 3
+
 
 //    Image{
 
@@ -29,16 +31,20 @@ Item {
 
 
     ScrollView {
-        width: parent.width
-        height: parent.height/2
+        width: 550
+        height: 400
+        highlightOnFocus: false
+//        frameVisible: true
         anchors.top: muscleImg.bottom
         anchors.topMargin: 20
+        anchors.horizontalCenter: parent.horizontalCenter
+        horizontalScrollBarPolicy: Qt.ScrollBarAlwaysOn
 
         flickableItem.interactive: true
 
         ListView {
             anchors.fill: parent
-            model: 3
+            model: emgUi.opSensorIds
             delegate: CalibrationDelegate {
                 sensorId:modelData
                 nCalibrations: 0
@@ -49,8 +55,8 @@ Item {
         style: ScrollViewStyle {
             transientScrollBars: true
             handle: Item {
-                implicitWidth: 14
-                implicitHeight: 26
+                implicitWidth: 30
+                implicitHeight: 60
                 Rectangle {
                     color: "#424246"
                     anchors.fill: parent
@@ -75,7 +81,34 @@ Item {
             anchors.leftMargin: -200
             anchors.bottom: muscleImg.bottom
             rotation: -90
-            value: 0.85
+            value: opBarLevel
+            maximumValue: 0.005
+        }
+
+        Timer{
+            id:calibTimer
+            interval: 1 * 1000 // 100 Hz
+            running: false
+            repeat: true
+            onTriggered: {
+
+                timerCountDown = timerCountDown - 1;
+                if(timerCountDown == 0){
+                    calibTimer.stop();
+                    timerCountDown = 3;
+                    //ACTUALLY call calibration for "selectedOpSensorIdx"
+                }
+            }
+        }
+
+        Text {
+            id: textTimerCountDown
+            anchors.centerIn: muscleImg
+            width: 60
+            height: 110
+            text: timerCountDown
+            font.pixelSize: 100
+            color: "red"
         }
 
 }

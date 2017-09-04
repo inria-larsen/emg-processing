@@ -60,6 +60,10 @@
         <parameters>--from emg_operator2robot.ini</parameters>
         <node>andyNode</node>
     </module>
+    <module>
+        <name>EMGui</name>
+        <node>andyNode</node>
+    </module>
 
     <!-- CONNECTIONS -->
 
@@ -86,6 +90,12 @@
           <to>/human_operator/emg:i</to>
           <protocol>udp</protocol>
     </connection>
+                                                      <!-- TEST CONNECTION -->
+                                                      <connection>
+                                                            <from>/emg/filtered:o</from>
+                                                            <to>/name/input:i</to>
+                                                            <protocol>udp</protocol>
+                                                      </connection>    
 
     <connection>
           <from>/emg/onset:o</from>

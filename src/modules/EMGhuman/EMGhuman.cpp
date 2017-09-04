@@ -120,8 +120,8 @@ class EMGhumanThread: public RateThread
 
         //open log files
         if(logStoreData){
-            iccLogFile.open(string("/home/waldez/"+name+"iccLog.csv").c_str());
-            normEmgLogFile.open(string("/home/waldez/"+name+"normEmgLog.csv").c_str());
+            iccLogFile.open(string(/*"/home/waldez/"+*/name+"IccLog.csv").c_str());
+            normEmgLogFile.open(string(/*"/home/waldez/"+*/name+"NormEmgLog.csv").c_str());
         }
 
         startTimeGlobal_ = Time::now();
@@ -569,7 +569,7 @@ public:
         std::vector<std::pair<int,int>> iccPairs;
 
         readValue(rf,"rate",rate,0.01); //10 ms is the default rate for the thread
-        readValue(rf,"calibration_duration",calibration_duration,0.01);
+        readValue(rf,"calibration_duration",calibration_duration,5);
         readParams(rf,"sensorIds",sensorIds);
         readParams(rf,"iccPairs",iccPairs);
         
