@@ -83,7 +83,7 @@ Item {
             anchors.bottom: muscleImg.bottom
             rotation: -90
             value: emgUi.opBarLevel
-            maximumValue: 0.005
+            maximumValue: 0.0025
         }
 
         Timer{

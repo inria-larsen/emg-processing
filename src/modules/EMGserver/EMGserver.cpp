@@ -27,7 +27,7 @@ using namespace EmgUtils;
 
 
 //Used to test the modules when the EMG Delsys Sensors are not immediately available
-#define FAKE_EMG_DATA   1
+#define FAKE_EMG_DATA   0
 
 #define STATUS_STOPPED              0x0
 #define STATUS_STREAMING_RAW        0x1
