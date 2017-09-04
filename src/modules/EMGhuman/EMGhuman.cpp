@@ -82,6 +82,7 @@ class EMGhumanThread: public RateThread
         bool logStoreData = true;
         std::ofstream iccLogFile;
         std::ofstream normEmgLogFile;
+        std::ofstream calibEmgLogFile;
 
         // Calibration Flag
         int calibrationStatus_ = CALIB_STATUS_NOT_CALIBRATED;
@@ -155,6 +156,21 @@ class EMGhumanThread: public RateThread
 
         yInfo("EMGhuman: thread closing");
 
+    }
+
+    void saveCalibration(){
+        if(calibrationStatus_ == CALIB_STATUS_CALIBRATED_ALL){
+
+            calibEmgLogFile.open(string(/*"/home/waldez/"+*/name+"CalibEmgLog.csv").c_str());
+
+            //save calibration
+            for(const auto& vi:emgMapMax) {
+                calibEmgLogFile << vi.first << ", "<<vi.second<< ", ";
+            }
+            calibEmgLogFile << std::endl;
+
+            calibEmgLogFile.close();
+        }
     }
 
     //------ RUN -------
@@ -332,7 +348,11 @@ class EMGhumanThread: public RateThread
                     }
 
                     //CHANGE CALIBRATION STATUS only if we have calibrated all of the sensors
-                    if(ok)  calibrationStatus_ = CALIB_STATUS_CALIBRATED_ALL;
+                    if(ok) {
+
+                        calibrationStatus_ = CALIB_STATUS_CALIBRATED_ALL;
+
+                    }
 
                     startTime_ = 0;
                     stopCalibrationMax();
@@ -535,6 +555,14 @@ public:
             }
                         cout<<"[INFO] " << reply.toString()<<endl;
             return true;
+        }
+        else if(cmd=="save_calibration"){
+            humanThread->saveCalibration();
+            reply.clear();
+            reply.addString("OK");
+            cout<<"[INFO] " << reply.toString()<<endl;
+            return true;
+
         }
         else
         {

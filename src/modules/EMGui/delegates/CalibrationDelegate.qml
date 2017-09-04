@@ -13,8 +13,8 @@ Item {
     MouseArea{
         anchors.fill: parent
         onReleased: {
-            selectedOpSensorIdx = sensorId;
-            console.log(selectedOpSensorIdx);
+            emgUi.opSelectedSensor = sensorId;
+            console.log(emgUi.opSelectedSensor);
         }
         Rectangle {
             width:500
@@ -75,8 +75,13 @@ Item {
 
 
             onClicked: {
+
+                emgUi.opSelectedSensor = sensorId;
+                console.log(emgUi.opSelectedSensor);
+
                 if(nCalibrations != 3 && (!calibTimer.running) ) nCalibrations++;
                 calibTimer.start();
+                emgUi.opCalibrateMax();
             }
         }
     }

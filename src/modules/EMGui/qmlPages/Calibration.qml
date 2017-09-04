@@ -8,7 +8,7 @@ Item {
     height: mainWin.height
 
     property string humanType: "operator"
-    property int timerCountDown: 3
+    property int timerCountDown: emgUi.calibDur
 
 
 //    Image{
@@ -24,7 +24,8 @@ Item {
         Text {
             anchors.centerIn: parent
             id: textImage
-            text: qsTr("Muscle image for human " + humanType)
+//            text: qsTr("Muscle image for human " + humanType)
+//            text:emgUi.opSelectedSensor
         }
         color:"white"
     }
@@ -81,7 +82,7 @@ Item {
             anchors.leftMargin: -200
             anchors.bottom: muscleImg.bottom
             rotation: -90
-            value: opBarLevel
+            value: emgUi.opBarLevel
             maximumValue: 0.005
         }
 
@@ -95,8 +96,7 @@ Item {
                 timerCountDown = timerCountDown - 1;
                 if(timerCountDown == 0){
                     calibTimer.stop();
-                    timerCountDown = 3;
-                    //ACTUALLY call calibration for "selectedOpSensorIdx"
+                    timerCountDown = emgUi.calibDur;
                 }
             }
         }
@@ -109,6 +109,30 @@ Item {
             text: timerCountDown
             font.pixelSize: 100
             color: "red"
+        }
+
+        Timer {
+            id: refreshTimer
+            interval: emgUi.rate * 1000 // 100 Hz
+            running: true
+            repeat: true
+            onTriggered: {
+    //            emgScope.updateScopeData(scope1.series(0), scope1.chartName);
+//                console.log("runnning timer from qml "+emgUi.rate);
+                emgUi.readEmg();
+
+            }
+        }
+
+        Button {
+            id: button
+            anchors.top: muscleImg.bottom
+            anchors.left: muscleImg.right
+            anchors.leftMargin: 25
+            text: qsTr("Save Calibration")
+            onClicked:{
+                emgUi.opSaveCalibration();
+            }
         }
 
 }

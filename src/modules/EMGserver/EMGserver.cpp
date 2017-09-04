@@ -101,12 +101,12 @@ class DelsysThread : public Thread {
                     std::vector<float> fakeRawData(16,1);
                     std::vector<double> fakeFilteredData(16,2);
 
-                    fakeFilteredData[0] = fakeRawData[0] = 1;
-                    fakeFilteredData[1] = fakeRawData[1] = 2;
-                    fakeFilteredData[2] = fakeRawData[2] = 3;
-                    fakeFilteredData[3] = fakeRawData[3] = 4;
-                    fakeFilteredData[4] = fakeRawData[4] = 5;
-                    fakeFilteredData[5] = fakeRawData[5] = 6;
+                    fakeFilteredData[0] = fakeRawData[0] = 0.0005;
+                    fakeFilteredData[1] = fakeRawData[1] = 0.0010;
+                    fakeFilteredData[2] = fakeRawData[2] = 0.0015;
+                    fakeFilteredData[3] = fakeRawData[3] = 0.0020;
+                    fakeFilteredData[4] = fakeRawData[4] = 0.0025;
+                    fakeFilteredData[5] = fakeRawData[5] = 0.0030;
 
                     rawData = fakeRawData;
                     filteredData = fakeFilteredData;

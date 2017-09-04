@@ -8,6 +8,21 @@ Item {
 //    width: 1200
 //    height: 800
 
+        Button {
+            id:b4
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.top:parent.top
+            anchors.topMargin: 100
+
+            text: "Calibrate"
+
+            onClicked: {
+//                stackView.push({item: Calibration, properties: {humanType: "collaborator"}})
+                stackView.push(Qt.resolvedUrl("Calibration.qml"));
+            }
+        }
+
+
     ColumnLayout {
         id: columnRight
         anchors.right: parent.right
@@ -15,17 +30,6 @@ Item {
         width: parent.width/2
         height: parent.height/4
         spacing: 20
-
-        Button {
-            id:b4
-            Layout.preferredWidth: 200
-            text: "Calibrate"
-            Layout.alignment: Qt.AlignCenter
-            onClicked: {
-//                stackView.push({item: Calibration, properties: {humanType: "collaborator"}})
-                stackView.push(Qt.resolvedUrl("Calibration.qml"));
-            }
-        }
 
         Button {
             id:b3
@@ -42,17 +46,6 @@ Item {
         width: parent.width/2
         height: parent.height/4
         spacing: 20
-
-        Button {
-            id:b1
-            text: "Calibrate"
-            Layout.preferredWidth: 200
-            Layout.alignment: Qt.AlignCenter
-            onClicked: {
-//                stackView.push({item: Calibration, properties: {humanType: "operator"}})
-                stackView.push(Qt.resolvedUrl("Calibration.qml"));
-            }
-        }
 
         Button {
             id:b2

@@ -10,9 +10,6 @@ ApplicationWindow {
     width: 800
     height: 1000
 
-    property int selectedOpSensorIdx: 1
-    property double opBarLevel: 0.0025
-
     Rectangle {
         color: "#212126"
         anchors.fill: parent
@@ -109,15 +106,5 @@ ApplicationWindow {
         }
     }
 
-    Timer {
-        id: refreshTimer
-        interval: 1* 1000 // 100 Hz
-        running: true
-        repeat: true
-        onTriggered: {
-//            emgScope.updateScopeData(scope1.series(0), scope1.chartName);
-//            console.log("runnning timer from qml "+emgUi.rate);
 
-        }
-    }
 }

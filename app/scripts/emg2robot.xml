@@ -93,9 +93,15 @@
                                                       <!-- TEST CONNECTION -->
                                                       <connection>
                                                             <from>/emg/filtered:o</from>
-                                                            <to>/name/input:i</to>
+                                                            <to>/emGui/input:i</to>
                                                             <protocol>udp</protocol>
-                                                      </connection>    
+                                                      </connection>
+
+                                                      <connection>
+                                                            <from>/emGui/op/rpc</from>
+                                                            <to>/human_operator/rpc</to>
+                                                            <protocol>tcp</protocol>
+                                                      </connection>                                                       
 
     <connection>
           <from>/emg/onset:o</from>
