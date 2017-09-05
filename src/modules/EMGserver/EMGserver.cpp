@@ -27,7 +27,7 @@ using namespace EmgUtils;
 
 
 //Used to test the modules when the EMG Delsys Sensors are not immediately available
-#define FAKE_EMG_DATA   0
+#define FAKE_EMG_DATA   1
 
 #define STATUS_STOPPED              0x0
 #define STATUS_STREAMING_RAW        0x1
@@ -98,8 +98,8 @@ class DelsysThread : public Thread {
                 //printf("\n Hello, from thread1 ");
 
                 if(FAKE_EMG_DATA){
-                    std::vector<float> fakeRawData(16,1);
-                    std::vector<double> fakeFilteredData(16,2);
+                    std::vector<float> fakeRawData(16,0.0005);
+                    std::vector<double> fakeFilteredData(16,0.0010);
 
                     fakeFilteredData[0] = fakeRawData[0] = 0.0005;
                     fakeFilteredData[1] = fakeRawData[1] = 0.0010;

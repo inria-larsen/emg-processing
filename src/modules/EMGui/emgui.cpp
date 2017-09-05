@@ -11,6 +11,7 @@ EmGui::EmGui(QObject *parent)
     inPortEmg_.open(std::string("/emGui/input:i").c_str());
 
     opRpcClientPort_.open(std::string("/emGui/op/rpc").c_str());
+    colRpcClientPort_.open(std::string("/emGui/col/rpc").c_str());
 
 }
 
@@ -23,6 +24,9 @@ void EmGui::close()
 
     opRpcClientPort_.interrupt();
     opRpcClientPort_.close();
+
+    colRpcClientPort_.interrupt();
+    colRpcClientPort_.close();
 
     yInfo("EmGui closing");
 
@@ -88,14 +92,16 @@ void EmGui::loadConfigFiles()
     std::vector<int> sensorIds;
     char* argv2[1];
 
-    //getting operator
-    rf_.setDefaultContext("emg-processing");
-    rf_.setDefaultConfigFile("human_operator.ini");
-    rf_.configure(1,argv2);
+    ResourceFinder opRf, colRf;
 
-    readValue(rf_, "rate",rate_,0.01);
-    readValue(rf_,"calibration_duration",calibDur_,5);
-    readParams(rf_,"sensorIds",sensorIds);
+    //getting operator data from config file
+    opRf.setDefaultContext("emg-processing");
+    opRf.setDefaultConfigFile("human_operator.ini");
+    opRf.configure(1,argv2);
+
+    readValue(opRf, "rate",rate_,0.01);
+    readValue(opRf,"calibration_duration",calibDur_,5);
+    readParams(opRf,"sensorIds",sensorIds);
 
 
     DSCPA(rate_);
@@ -103,6 +109,20 @@ void EmGui::loadConfigFiles()
     DSCPA(sensorIds);
     QVariant sensorIdsQVar = QVariant::fromValue ( QVector<int>::fromStdVector(sensorIds) );
     setOpSensorIds( sensorIdsQVar.value<QVariantList>() );
+
+    //now getting collaborator data from config file
+    colRf.setDefaultContext("emg-processing");
+    colRf.setDefaultConfigFile("human_collaborator.ini");
+    colRf.configure(1,argv2);
+
+    sensorIds.clear();
+    sensorIdsQVar.clear();
+
+    readParams(colRf,"sensorIds",sensorIds);
+    DSCPA(sensorIds);
+
+    sensorIdsQVar = QVariant::fromValue ( QVector<int>::fromStdVector(sensorIds) );
+    setColSensorIds( sensorIdsQVar.value<QVariantList>() );
 
 }
 
@@ -114,6 +134,7 @@ QVariantList EmGui::colSensorIds() const
 void EmGui::setColSensorIds(const QVariantList &colSensorIds)
 {
     colSensorIds_ = colSensorIds;
+    emit colSensorIdsChanged();
 }
 
 int EmGui::colSelectedSensor() const
@@ -124,6 +145,7 @@ int EmGui::colSelectedSensor() const
 void EmGui::setColSelectedSensor(int colSelectedSensor)
 {
     colSelectedSensor_ = colSelectedSensor;
+    emit colSelectedSensorChanged();
 }
 
 double EmGui::colBarLevel() const
@@ -134,6 +156,7 @@ double EmGui::colBarLevel() const
 void EmGui::setColBarLevel(double colBarLevel)
 {
     colBarLevel_ = colBarLevel;
+    emit colBarLevelChanged();
 }
 
 
@@ -149,10 +172,13 @@ void EmGui::readEmg(void)
                 int currentSenId = inEmg_->get(i).asInt();
                 emgMap_[currentSenId] = inEmg_->get(i+1).asDouble();
 
-    //            DSCPA(opSelectedSensor_);
-
+                //change both bar levels
                 if(opSelectedSensor() == currentSenId){
                     setOpBarLevel(emgMap_[currentSenId]);
+                }
+
+                if(colSelectedSensor() == currentSenId){
+                    setColBarLevel(emgMap_[currentSenId]);
                 }
             }
     //        DSCPAstdMap(emgMap_);
@@ -168,12 +194,12 @@ void EmGui::opCalibrateMax()
         cmd.addString("calibrate_max");
         cmd.addInt(opSelectedSensor());
 
-        std::cout<<"[INFO] Sending cmd: " <<cmd.toString().c_str() << "."<<endl;
+        std::cout<<"[INFO] Sending cmd to operator: " <<cmd.toString().c_str() << "."<<endl;
 
         Bottle response;
         opRpcClientPort_.write(cmd,response);
 
-        std::cout<<"[INFO] Got response: "<<response.toString().c_str() <<"."<<endl;
+        std::cout<<"[INFO] Got response from operator: "<<response.toString().c_str() <<"."<<endl;
 
         //TODO: send response to QML and act accordingly
     }
@@ -185,12 +211,47 @@ void EmGui::opSaveCalibration()
         Bottle cmd;
         cmd.addString("save_calibration");
 
-        std::cout<<"[INFO] Sending cmd: " <<cmd.toString().c_str() << "."<<endl;
+        std::cout<<"[INFO] Sending cmd to operator: " <<cmd.toString().c_str() << "."<<endl;
 
         Bottle response;
         opRpcClientPort_.write(cmd,response);
 
-        std::cout<<"[INFO] Got response: "<<response.toString().c_str() <<"."<<endl;
+        std::cout<<"[INFO] Got response from operator: "<<response.toString().c_str() <<"."<<endl;
+
+        //TODO: send response to QML and act accordingly
+    }
+}
+
+void EmGui::colCalibrateMax()
+{
+    if(colRpcClientPort_.getOutputCount() > 0){
+        Bottle cmd;
+        cmd.addString("calibrate_max");
+        cmd.addInt(colSelectedSensor());
+
+        std::cout<<"[INFO] Sending cmd to collaborator: " <<cmd.toString().c_str() << "."<<endl;
+
+        Bottle response;
+        colRpcClientPort_.write(cmd,response);
+
+        std::cout<<"[INFO] Got response from collaborator: "<<response.toString().c_str() <<"."<<endl;
+
+        //TODO: send response to QML and act accordingly
+    }
+}
+
+void EmGui::colSaveCalibration()
+{
+    if(colRpcClientPort_.getOutputCount() > 0){
+        Bottle cmd;
+        cmd.addString("save_calibration");
+
+        std::cout<<"[INFO] Sending cmd to collaborator: " <<cmd.toString().c_str() << "."<<endl;
+
+        Bottle response;
+        colRpcClientPort_.write(cmd,response);
+
+        std::cout<<"[INFO] Got response from collaborator: "<<response.toString().c_str() <<"."<<endl;
 
         //TODO: send response to QML and act accordingly
     }

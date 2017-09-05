@@ -5,6 +5,7 @@ import QtQuick.Controls.Styles 1.4
 Item {
     property int nCalibrations: 0
     property int sensorId: 0
+    property bool operator: true
 
     height: 30
 //    width: parent.width
@@ -13,8 +14,16 @@ Item {
     MouseArea{
         anchors.fill: parent
         onReleased: {
-            emgUi.opSelectedSensor = sensorId;
-            console.log(emgUi.opSelectedSensor);
+            if(operator){
+                emgUi.opSelectedSensor = sensorId;
+                console.log(emgUi.opSelectedSensor);
+
+            }
+            else{
+                emgUi.colSelectedSensor = sensorId;
+                console.log(emgUi.colSelectedSensor);
+            }
+
         }
         Rectangle {
             width:500
@@ -69,19 +78,30 @@ Item {
             height: 30
             text: "Calibrate"
     //        font.pointSize: 19
+            enabled: (operator) ? true : !colRest
 
             anchors.centerIn: parent
     //        style:
 
 
             onClicked: {
+                if(operator){
+                    emgUi.opSelectedSensor = sensorId;
+                    console.log(emgUi.opSelectedSensor);
+                    if(nCalibrations != 3 && (!opCalibTimer.running) ) nCalibrations++;
+                    opCalibTimer.start();
+                    emgUi.opCalibrateMax();
 
-                emgUi.opSelectedSensor = sensorId;
-                console.log(emgUi.opSelectedSensor);
+                }
+                else{
+                    emgUi.colSelectedSensor = sensorId;
+                    console.log(emgUi.colSelectedSensor);
+                    if(nCalibrations != 3 && (!colCalibTimer.running) ) nCalibrations++;
+                    colCalibTimer.start();
+                    emgUi.colCalibrateMax();
+                }
 
-                if(nCalibrations != 3 && (!calibTimer.running) ) nCalibrations++;
-                calibTimer.start();
-                emgUi.opCalibrateMax();
+
             }
         }
     }

@@ -60,6 +60,9 @@ public slots:
     void opCalibrateMax();
     void opSaveCalibration(void);
 
+    void colCalibrateMax();
+    void colSaveCalibration(void);
+
 signals:
     void rateChanged(void);
     void calibDurChanged(void);
@@ -81,10 +84,10 @@ private:
 
     //yarp related attributes
 
-    ResourceFinder rf_;
     Bottle *inEmg_;
     BufferedPort<Bottle> inPortEmg_;
     RpcClient opRpcClientPort_;
+    RpcClient colRpcClientPort_;
 
 
 

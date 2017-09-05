@@ -101,7 +101,13 @@
                                                             <from>/emGui/op/rpc</from>
                                                             <to>/human_operator/rpc</to>
                                                             <protocol>tcp</protocol>
-                                                      </connection>                                                       
+                                                      </connection>
+
+                                                      <connection>
+                                                            <from>/emGui/col/rpc</from>
+                                                            <to>/human_collaborator/rpc</to>
+                                                            <protocol>tcp</protocol>
+                                                      </connection>                                                                                                             
 
     <connection>
           <from>/emg/onset:o</from>
