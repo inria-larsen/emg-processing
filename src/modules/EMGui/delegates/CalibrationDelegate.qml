@@ -78,7 +78,7 @@ Item {
             height: 30
             text: "Calibrate"
     //        font.pointSize: 19
-            enabled: (operator) ? true : !colRest
+            enabled: (operator) ? !opRest : !colRest
 
             anchors.centerIn: parent
     //        style:

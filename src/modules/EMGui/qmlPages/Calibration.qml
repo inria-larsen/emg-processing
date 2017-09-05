@@ -12,6 +12,7 @@ Item {
     property int colTimerCountDown: emgUi.calibDur
 
     property bool colRest: false
+    property bool opRest: false
 
 
 //    Image{
@@ -98,6 +99,16 @@ Item {
             }
         }
     }
+    Timer{
+        id:opRestTimer
+        interval: 60*1000
+        running: false
+        repeat: false
+        onTriggered: {
+            opRest = false;
+        }
+    }
+
 
     Timer{
         id:opCalibTimer
@@ -110,6 +121,8 @@ Item {
             if(opTimerCountDown == 0){
                 opCalibTimer.stop();
                 opTimerCountDown = emgUi.calibDur;
+                opRest = true;
+                opRestTimer.start();
             }
         }
     }
