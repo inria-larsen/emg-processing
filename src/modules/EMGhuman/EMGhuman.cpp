@@ -43,6 +43,8 @@ class EMGhumanThread: public RateThread
         int status, prevStatus;
         // name used for the ports
         std::string name;
+        // subject's id
+        int subjectId_;
         // utilizes sensor ids
         std::vector<int> sensorIds_;
         // icc pairs list, based on sensor ids
@@ -97,12 +99,13 @@ class EMGhumanThread: public RateThread
     public: 
 
     EMGhumanThread(const double _period, string _name, double calibDur,
-                   std::vector<int> senId,std::vector<std::pair<int,int>> iccPairs)
+                   std::vector<int> senId,std::vector<std::pair<int,int>> iccPairs, int subId)
         : RateThread(int(_period*1000.0)),
           calibDur_(calibDur),
           name(_name),
           sensorIds_(senId),
-          iccPairs_(iccPairs)
+          iccPairs_(iccPairs),
+          subjectId_(subId)
     {
         status = STATUS_STOPPED;
 //        status = STATUS_STREAMING;
@@ -121,8 +124,8 @@ class EMGhumanThread: public RateThread
 
         //open log files
         if(logStoreData){
-            iccLogFile.open(string(/*"/home/waldez/"+*/name+"IccLog.csv").c_str());
-            normEmgLogFile.open(string(/*"/home/waldez/"+*/name+"NormEmgLog.csv").c_str());
+            iccLogFile.open(string("EMGLog/DyadExperiment/"+to_string(subjectId_)+"_"+to_string((int)Time::now())+"_"+name+"_IccLog.csv").c_str());
+            normEmgLogFile.open(string("EMGLog/DyadExperiment/"+to_string(subjectId_)+"_"+to_string((int)Time::now())+"_"+name+"_NormEmgLog.csv").c_str());
         }
 
         startTimeGlobal_ = Time::now();
@@ -161,7 +164,7 @@ class EMGhumanThread: public RateThread
     void saveCalibration(){
         if(calibrationStatus_ == CALIB_STATUS_CALIBRATED_ALL){
 
-            calibEmgLogFile.open(string(/*"/home/waldez/"+*/name+"CalibEmgLog.csv").c_str());
+            calibEmgLogFile.open(string("EMGLog/Calibration/"+std::to_string(subjectId_)+"_"+to_string((int)Time::now())+"_"+name+"_CalibEmgLog.csv").c_str());
 
             //save calibration
             for(const auto& vi:emgMapMax) {
@@ -419,17 +422,19 @@ class EMGhuman: public RFModule
 private:
 
      // counter for the number of minutes of execution
-    int count;
+    int count_;
     // the port to handle messages
     Port rpc; 
     // name of the module, used for creating ports
-    std::string name;
+    std::string name_;
+    //subject's ID
+    int subjectId_;
     // rate of the human thread, expressed in seconds: e.g, 20 ms => 0.02
-    double rate;
+    double rate_;
     // calibration 
     //bool calibration;
     // calibration duration
-    double calibration_duration;
+    double calibration_duration_;
     // type of calibration 2=arm2 / 4=arm4 / 8=arm8
     //int calibration_type;
     // calibration default values
@@ -437,26 +442,24 @@ private:
     // use filtered data 0=no, 1=rmse, 2=rmse+filtered
     //int use_filtered_data;
     // auto-connect to the ports (VERY RISKY)
-    bool autoconnect;
-    // numbers of sensors that we will use here
-    int numberOfSensors;
+    bool autoconnect_;
     // sensors ids
-    std::vector<int> sensorIds;
+    std::vector<int> sensorIds_;
     // sensor names
-    deque<std::string> sensorNames;
+    deque<std::string> sensorNames_;
 
     // human thread
-    EMGhumanThread *humanThread;
+    EMGhumanThread *humanThread_;
 
 public:
 
     //---------------------------------------------------------
     EMGhuman()
     {
-        count=0;
-        rate=0.01;
-        name="EMGhuman";
-        calibration_duration=5.0;
+        count_=0;
+        rate_=0.01;
+        name_="EMGhuman";
+        calibration_duration_=5.0;
     }
 
     //---------------------------------------------------------
@@ -465,9 +468,9 @@ public:
     //---------------------------------------------------------
     virtual bool updateModule()
     {
-        if(count%60==0)
-            cout<<" EMGhuman alive since "<<(count/60)<<" mins ... "<<endl;
-        count++;
+        if(count_%60==0)
+            cout<<" EMGhuman alive since "<<(count_/60)<<" mins ... "<<endl;
+        count_++;
         return true;
     }
 
@@ -497,7 +500,7 @@ public:
         }  
         else if(cmd=="stop")
         {
-            humanThread->stopStreaming();
+            humanThread_->stopStreaming();
             reply.clear(); reply.addString("OK");
             //cout<<" test";
                         cout<<"[INFO] " << reply.toString()<<endl;
@@ -505,14 +508,14 @@ public:
         }
         else if(cmd=="start")
         {
-            humanThread->startStreaming();
+            humanThread_->startStreaming();
             reply.clear(); reply.addString("OK");
                         cout<<"[INFO] " << reply.toString()<<endl;
             return true;
         } 
         else if(cmd=="status")
         {
-            int curStatus=humanThread->getStatus();
+            int curStatus=humanThread_->getStatus();
 
             reply.clear();
             if(curStatus==STATUS_STOPPED) reply.addString(" Status = STOPPED");
@@ -525,7 +528,7 @@ public:
         }
         else if(cmd=="calibration_status")
         {
-            int curCalibStatus=humanThread->getCalibrationStatus();
+            int curCalibStatus=humanThread_->getCalibrationStatus();
 
             reply.clear();
             if(curCalibStatus==CALIB_STATUS_NOT_CALIBRATED) reply.addString(" Calibration Status = NOT CALIBRATED");
@@ -540,7 +543,7 @@ public:
             if(command.size() <= 1){
                 reply.clear();
                 reply.addString("No sensor id input. Please use \"calibrate_max SENSOR_ID_VALUE \" ");
-            } else if(humanThread->getStatus() == STATUS_CALIBRATION_MAX){
+            } else if(humanThread_->getStatus() == STATUS_CALIBRATION_MAX){
 
                 reply.clear();
                 reply.addString("There is a sensor already being calibrated, please wait.");
@@ -548,8 +551,8 @@ public:
             } else{
                 int senId = command.get(1).asInt();
                     cout<<"[INFO] second command: " << senId<<endl;
-                humanThread->setCalibSenId(senId);
-                humanThread->startCalibrationMax();
+                humanThread_->setCalibSenId(senId);
+                humanThread_->startCalibrationMax();
                 reply.clear();
                 reply.addString("OK");
             }
@@ -557,7 +560,7 @@ public:
             return true;
         }
         else if(cmd=="save_calibration"){
-            humanThread->saveCalibration();
+            humanThread_->saveCalibration();
             reply.clear();
             reply.addString("OK");
             cout<<"[INFO] " << reply.toString()<<endl;
@@ -589,31 +592,33 @@ public:
         Time::turboBoost();
 
         if(rf.check("name"))
-            name    = rf.find("name").asString();
+            name_    = rf.find("name").asString();
         else
-            name    = "EMGhuman";
+            name_    = "EMGhuman";
         //....................................................
 
         std::vector<std::pair<int,int>> iccPairs;
 
-        readValue(rf,"rate",rate,0.01); //10 ms is the default rate for the thread
-        readValue(rf,"calibration_duration",calibration_duration,5);
-        readParams(rf,"sensorIds",sensorIds);
+        readValue(rf,"rate",rate_,0.01); //10 ms is the default rate for the thread
+        readValue(rf,"calibration_duration",calibration_duration_,5);
+        readParams(rf,"sensorIds",sensorIds_);
         readParams(rf,"iccPairs",iccPairs);
+        readValue(rf,"subject_id",subjectId_,0);
         
 
         cout<<"Parameters from init file: "<<endl;
-        DSCPA(name);
-        DSCPA(rate);
-        DSCPAstdvec(sensorIds);
+        DSCPA(name_);
+        DSCPA(rate_);
+        DSCPAstdvec(sensorIds_);
         DSCPAstdvecpair(iccPairs);
+        DSCPA(subjectId_);
 
         //creating the thread for the server
-        humanThread = new EMGhumanThread(rate,name,calibration_duration, sensorIds, iccPairs);
-        if(!humanThread->start())
+        humanThread_ = new EMGhumanThread(rate_,name_,calibration_duration_, sensorIds_, iccPairs, subjectId_);
+        if(!humanThread_->start())
         {
             yError("EMGhuman: cannot start the server thread. Aborting.");
-            delete humanThread;
+            delete humanThread_;
             return false;
         }
        
@@ -623,7 +628,7 @@ public:
         // to connect to the module do:
         // yarp rpc /EMGhuman/rpc 
         // yarp rpc /human_operator/rpc
-        rpc.open(string("/"+name+"/rpc").c_str());
+        rpc.open(string("/"+name_+"/rpc").c_str());
         attach(rpc);
         yInfo("EMGhuman: RPC port attached");
 
@@ -637,8 +642,8 @@ public:
     {
        
        //closing thread
-       humanThread->stop();
-       delete humanThread;
+       humanThread_->stop();
+       delete humanThread_;
 
         cout<<"Close rpc port"<<endl;
         rpc.interrupt();
