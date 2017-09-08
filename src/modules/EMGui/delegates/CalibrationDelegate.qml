@@ -100,6 +100,7 @@ Item {
                     colCalibTimer.start();
                     emgUi.colCalibrateMax();
                 }
+                emgUi.beep();
 
 
             }

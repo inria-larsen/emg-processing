@@ -83,6 +83,7 @@ double EmGui::opBarLevel() const
 
 void EmGui::setOpBarLevel(double opBarLevel)
 {
+    if(opBarLevel > EMG_MAX_VALUE) opBarLevel = EMG_MAX_VALUE;
     opBarLevel_ = opBarLevel;
     emit opBarLevelChanged();
 }
@@ -155,6 +156,7 @@ double EmGui::colBarLevel() const
 
 void EmGui::setColBarLevel(double colBarLevel)
 {
+    if(colBarLevel > EMG_MAX_VALUE) colBarLevel = EMG_MAX_VALUE;
     colBarLevel_ = colBarLevel;
     emit colBarLevelChanged();
 }
@@ -255,6 +257,15 @@ void EmGui::colSaveCalibration()
 
         //TODO: send response to QML and act accordingly
     }
+}
+
+void EmGui::beep()
+{
+    int ret;
+//    string s("beep");
+//    string s("paplay /usr/share/sounds/ubuntu/notifications/Positive.ogg");
+    string s("paplay /usr/share/sounds/speech-dispatcher/test.wav");
+    ret = system(s.c_str());
 }
 
 

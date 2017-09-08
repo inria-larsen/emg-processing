@@ -5,6 +5,8 @@
 #include <QVariant>
 #include "emgutils.h"
 
+#define EMG_MAX_VALUE 0.0025
+
 using namespace std;
 using namespace yarp::os;
 using namespace yarp::sig;
@@ -62,6 +64,8 @@ public slots:
 
     void colCalibrateMax();
     void colSaveCalibration(void);
+
+    void beep();
 
 signals:
     void rateChanged(void);

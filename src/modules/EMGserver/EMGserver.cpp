@@ -19,6 +19,8 @@
 #include "EmgTcp.h"
 #include "EmgSignal.h"
 #include "emgutils.h"
+#include "stdlib.h"
+#include <string.h>
 
 using namespace std;
 using namespace yarp::os;
@@ -561,6 +563,10 @@ int main(int argc, char * argv[])
     Network yarp;
     if (!yarp.checkNetwork())
     {
+        int ret;
+        string s("beep");
+        ret = system(s.c_str());
+
         yError("YARP server not available!");
         return -1;
     }

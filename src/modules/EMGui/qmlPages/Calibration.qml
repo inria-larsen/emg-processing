@@ -22,6 +22,13 @@ Item {
 //===========
 //OP ELEMENTS
 //===========
+    Text{
+        text: "Subject 1"
+        anchors.horizontalCenter: muscleImg.horizontalCenter
+        anchors.bottom: muscleImg.top
+        color:"white"
+    }
+
     Rectangle{
         id: muscleImg
         width:500
@@ -123,6 +130,7 @@ Item {
                 opTimerCountDown = emgUi.calibDur;
                 opRest = true;
                 opRestTimer.start();
+                emgUi.beep();
             }
         }
     }
@@ -140,6 +148,13 @@ Item {
     //===========
     //COL ELEMENTS
     //===========
+
+    Text{
+        text: "Subject 2"
+        anchors.horizontalCenter: colMuscleImg.horizontalCenter
+        anchors.bottom: colMuscleImg.top
+        color: "white"
+    }
 
     Rectangle{
         id: colMuscleImg
@@ -162,6 +177,7 @@ Item {
         rotation: -90
         value: emgUi.colBarLevel
         maximumValue: 0.0025
+
     }
     Button {
         id: colButton
@@ -242,6 +258,7 @@ Item {
                 colTimerCountDown = emgUi.calibDur;
                 colRest = true;
                 colRestTimer.start();
+                emgUi.beep();
             }
         }
     }
