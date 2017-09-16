@@ -86,6 +86,7 @@ Item {
 
             onClicked: {
                 if(operator){
+                    opRest = true;
                     emgUi.opSelectedSensor = sensorId;
                     console.log(emgUi.opSelectedSensor);
                     if(nCalibrations != 3 && (!opCalibTimer.running) ) nCalibrations++;
@@ -94,6 +95,7 @@ Item {
 
                 }
                 else{
+                    colRest = true;
                     emgUi.colSelectedSensor = sensorId;
                     console.log(emgUi.colSelectedSensor);
                     if(nCalibrations != 3 && (!colCalibTimer.running) ) nCalibrations++;

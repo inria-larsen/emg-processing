@@ -128,7 +128,7 @@ Item {
             if(opTimerCountDown == 0){
                 opCalibTimer.stop();
                 opTimerCountDown = emgUi.calibDur;
-                opRest = true;
+//                opRest = true;
                 opRestTimer.start();
                 emgUi.beep();
             }
@@ -256,7 +256,7 @@ Item {
             if(colTimerCountDown == 0){
                 colCalibTimer.stop();
                 colTimerCountDown = emgUi.calibDur;
-                colRest = true;
+//                colRest = true;
                 colRestTimer.start();
                 emgUi.beep();
             }
@@ -291,6 +291,18 @@ Item {
 //                console.log("runnning timer from qml "+emgUi.rate);
                 emgUi.readEmg();
 
+            }
+        }
+
+        Button{
+            id:testSoundButton
+            anchors.top : colButton.bottom
+            anchors.topMargin: 25
+            anchors.horizontalCenter: colButton.horizontalCenter
+            text:"Test BIP Sound"
+            onClicked: {
+
+                emgUi.beep();
             }
         }
 
