@@ -21,6 +21,7 @@ using namespace yarp::sig;
 #define DSCPAstdvecpair(V)  std::cout << "  " << #V << " :"; for(const auto& vi:V) {std::cout << " (" << vi.first <<"," << vi.second << ") "; } std::cout << std::endl;
 #define DSCPAstdMap(V)  std::cout << "  " << #V << " :"; for(const auto& vi:V) {std::cout << " id is " << vi.first << " val is "<<vi.second; } std::cout << std::endl;
 
+//namespace with common functions used by all the modules
 namespace EmgUtils {
     // functions to read parameters from a 'ResourceFinder' object
     void readParams(ResourceFinder &rf, string s, std::vector<int> &v);
