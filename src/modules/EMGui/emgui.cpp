@@ -83,6 +83,8 @@ double EmGui::opBarLevel() const
 
 void EmGui::setOpBarLevel(double opBarLevel)
 {
+    //Due to a bug in the qml component we're only assigning values to the bar level
+    //that are lower than the max value
     if(opBarLevel > EMG_MAX_VALUE) opBarLevel = EMG_MAX_VALUE;
     opBarLevel_ = opBarLevel;
     emit opBarLevelChanged();
@@ -156,12 +158,12 @@ double EmGui::colBarLevel() const
 
 void EmGui::setColBarLevel(double colBarLevel)
 {
+    //Due to a bug in the qml component we're only assigning values to the bar level
+    //that are lower than the max value
     if(colBarLevel > EMG_MAX_VALUE) colBarLevel = EMG_MAX_VALUE;
     colBarLevel_ = colBarLevel;
     emit colBarLevelChanged();
 }
-
-
 
 void EmGui::readEmg(void)
 {
@@ -261,6 +263,7 @@ void EmGui::colSaveCalibration()
 
 void EmGui::beep()
 {
+    //ONLY WORKS WITH UBUNTU!!!
     int ret;
 //    string s("beep");
 //    string s("paplay /usr/share/sounds/ubuntu/notifications/Positive.ogg");

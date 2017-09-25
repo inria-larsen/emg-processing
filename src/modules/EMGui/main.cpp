@@ -22,7 +22,7 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-
+    //C++ interface between GUI and the other yarp modules
     EmGui* emgUi = new EmGui();
 
     QGuiApplication app(argc, argv);
