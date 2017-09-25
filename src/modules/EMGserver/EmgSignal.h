@@ -1,3 +1,19 @@
+/*
+ * Emg Signal
+ *
+ * Author: Waldez Gomes
+ * email:  waldezjr14@gmail.com
+ *
+ * Permission is granted to copy, distribute, and/or modify this program
+ * under the terms of the GNU General Public License, version 2 or any
+ * later version published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+ * Public License for more details
+*/
+
 #ifndef EMG_SIGNAL_H
 #define EMG_SIGNAL_H
 
@@ -11,6 +27,9 @@
 
 #define RMS_WIN_SIZE 112
 
+/**
+ * @brief The EmgSignal class processess the emg read from the EmgTcp class
+ */
 class EmgSignal
 {
 public:

@@ -1,6 +1,6 @@
 /*
- * EMG server 
- * 
+ * EMG server
+ *
  * Author: Serena Ivaldi
  * email:  serena.ivaldi@inria.fr
  *
@@ -47,30 +47,30 @@ using namespace EmgUtils;
 
 
 /**
- * @brief The DelsysThread class gets data as soon as it is available from Delsys TCP server
+ * @brief The DelsysThread class gets data as soon as it is available from Delsys TCP server (no trigger input)
  */
 class DelsysThread : public Thread {
-    protected:
+protected:
 
 
-        EmgTcp *emgConPtr_; /*!<Pointer to EmgTcp instance, instanced by EMGserverThread */
-        EmgSignal emgSig;  /*!<Filters the raw signal from the sensors, RMS + Butterworth*/
-        
-        std::vector<float> rawData;/**<Stores the raw data for each one of the 16 sensors*/
-        std::vector<double> filteredData; /**<Stores the filtered data for each one of the 16 sensors*/
+    EmgTcp *emgConPtr_; /*!<Pointer to EmgTcp instance, instanced by EMGserverThread */
+    EmgSignal emgSig;  /*!<Filters the raw signal from the sensors, RMS + Butterworth*/
 
-        BufferedPort<Bottle> pingTest; /**<Test port used to verify the speed of this DelsysThread*/
+    std::vector<float> rawData;/**<Stores the raw data for each one of the 16 sensors*/
+    std::vector<double> filteredData; /**<Stores the filtered data for each one of the 16 sensors*/
 
-    public:
-        DelsysThread( EmgTcp *emgCon){
-            emgConPtr_ = emgCon;
-            pingTest.open("/pingTeste");
-        }
+    BufferedPort<Bottle> pingTest; /**<Test port used to verify the speed of this DelsysThread*/
 
-        virtual bool threadInit()
-        {
-            Time::turboBoost();
-            yInfo("Starting SensorThread");
+public:
+    DelsysThread( EmgTcp *emgCon){
+        emgConPtr_ = emgCon;
+        pingTest.open("/pingTeste");
+    }
+
+    virtual bool threadInit()
+    {
+        Time::turboBoost();
+        yInfo("Starting SensorThread");
 
 
         if(!FAKE_EMG_DATA){
@@ -79,81 +79,81 @@ class DelsysThread : public Thread {
 
         }
 
-            return true;
-        }
+        return true;
+    }
 
-        std::vector<float> getRawData(){
-            return rawData;
-        }
+    std::vector<float> getRawData(){
+        return rawData;
+    }
 
-        std::vector<double> getFilteredData(){
-            return filteredData;
-        }
+    std::vector<double> getFilteredData(){
+        return filteredData;
+    }
 
 
-        virtual void run() {
-            
-            int count = 0;
+    virtual void run() {
+
+        int count = 0;
 
         long double start = (long double)Time::now();
-            while (!isStopping()) {
-                //printf("\n Hello, from thread1 ");
+        while (!isStopping()) {
+            //printf("\n Hello, from thread1 ");
 
-                if(FAKE_EMG_DATA){
-                    std::vector<float> fakeRawData(16,0.0005);
-                    std::vector<double> fakeFilteredData(16,0.0010);
+            if(FAKE_EMG_DATA){
+                std::vector<float> fakeRawData(16,0.0005);
+                std::vector<double> fakeFilteredData(16,0.0010);
 
-                    fakeFilteredData[0] = fakeRawData[0] = 0.0005;
-                    fakeFilteredData[1] = fakeRawData[1] = 0.0010;
-                    fakeFilteredData[2] = fakeRawData[2] = 0.0015;
-                    fakeFilteredData[3] = fakeRawData[3] = 0.0020;
-                    fakeFilteredData[4] = fakeRawData[4] = 0.0025;
-                    fakeFilteredData[5] = fakeRawData[5] = 0.0030;
+                fakeFilteredData[0] = fakeRawData[0] = 0.0005;
+                fakeFilteredData[1] = fakeRawData[1] = 0.0010;
+                fakeFilteredData[2] = fakeRawData[2] = 0.0015;
+                fakeFilteredData[3] = fakeRawData[3] = 0.0020;
+                fakeFilteredData[4] = fakeRawData[4] = 0.0025;
+                fakeFilteredData[5] = fakeRawData[5] = 0.0030;
 
-                    rawData = fakeRawData;
-                    filteredData = fakeFilteredData;
-                    Time::delay(1/1111); // same as the delay from the sensors
-                }
-                else if(emgConPtr_->isStreaming() && emgConPtr_->isImEmgConnected() && emgConPtr_->isCmdConnected()){ //check if tcp is connected and streaming
-                    
-                    count++;
+                rawData = fakeRawData;
+                filteredData = fakeFilteredData;
+                Time::delay(1/1111); // same as the delay from the sensors
+            }
+            else if(emgConPtr_->isStreaming() && emgConPtr_->isImEmgConnected() && emgConPtr_->isCmdConnected()){ //check if tcp is connected and streaming
 
-                    EmgData sample = emgConPtr_->getData();
-                    emgSig.setSample(sample, count);
-                        std::vector<double> rmsValues = emgSig.rms();
-                        std::vector<double> postFiltered = emgSig.butterworth(rmsValues); 
+                count++;
+
+                EmgData sample = emgConPtr_->getData();
+                emgSig.setSample(sample, count);
+                std::vector<double> rmsValues = emgSig.rms();
+                std::vector<double> postFiltered = emgSig.butterworth(rmsValues);
 
 
-                        long double curTime = (long double)Time::now() - start;
-                        
-                        rawData = sample.data;
-                        filteredData = postFiltered;
+                long double curTime = (long double)Time::now() - start;
 
-                        /*m.lock();
+                rawData = sample.data;
+                filteredData = postFiltered;
+
+                /*m.lock();
                             //std::cout<< endl<<(long double)Time::now() - start;
                             std::cout << endl<<"[FAST THREAD]"<<curTime<< " filtered data is: " << filteredData[0];
                         m.unlock();
                         */
 
-                    Bottle& testBot = pingTest.prepare();
-                    testBot.clear();
-                    testBot.addDouble(1);
-                    pingTest.write();
+                Bottle& testBot = pingTest.prepare();
+                testBot.clear();
+                testBot.addDouble(1);
+                pingTest.write();
 
-                }
-                
-                
             }
+
+
         }
-        virtual void threadRelease()
-        {
-            printf("Goodbye from SensorThread\n");
-            if(!FAKE_EMG_DATA){
-                emgConPtr_->stopDataStream();
-            }
-            pingTest.interrupt();
-            pingTest.close();
+    }
+    virtual void threadRelease()
+    {
+        printf("Goodbye from SensorThread\n");
+        if(!FAKE_EMG_DATA){
+            emgConPtr_->stopDataStream();
         }
+        pingTest.interrupt();
+        pingTest.close();
+    }
 };
 
 
@@ -163,34 +163,34 @@ class DelsysThread : public Thread {
 
 class EMGserverThread: public RateThread
 {
-    protected:
+protected:
 
-        string name; /**<Name used for the ports*/
+    string name; /**<Name used for the ports*/
 
-        EmgTcp emgCon; /**<Connection to the Delsys Tcp Server*/
-        DelsysThread *delTh; /**<Fast thread to receive and process the data from Delsys Server*/
-        BufferedPort<Bottle> raw; /**<Port that outputs the raw data at a slower rate*/
-        BufferedPort<Bottle> filtered;/**<Port that outputs the raw data at a slower rate*/
+    EmgTcp emgCon; /**<Connection to the Delsys Tcp Server*/
+    DelsysThread *delTh; /**<Fast thread to receive and process the data from Delsys Server*/
+    BufferedPort<Bottle> raw; /**<Port that outputs the raw data at a slower rate*/
+    BufferedPort<Bottle> filtered;/**<Port that outputs the raw data at a slower rate*/
 
-        //bool streamingRaw_ = false;
-        //bool streamingFiltered_ = false;
-        unsigned int status_ = STATUS_STOPPED;
+    //bool streamingRaw_ = false;
+    //bool streamingFiltered_ = false;
+    unsigned int status_ = STATUS_STOPPED;
 
-        std::vector<int> senIds_;/**<Vector that identifies the sensors that are actually being used*/
+    std::vector<int> senIds_;/**<Vector that identifies the sensors that are actually being used*/
 
-        int nSensors_ = 0;/**<Number of sensors being used*/
+    int nSensors_ = 0;/**<Number of sensors being used*/
 
-        int count = 0;
+    int count = 0;
 
-    public: 
+public:
 
     EMGserverThread(const double _period, string _name, string ipadd, int status, int nsens, std::vector<int> senIds)
         :
-        RateThread(int(_period*1000.0)),
-        name(_name),
-        status_(status),
-        nSensors_(nsens),
-        senIds_(senIds)
+          RateThread(int(_period*1000.0)),
+          name(_name),
+          status_(status),
+          nSensors_(nsens),
+          senIds_(senIds)
 
     {
         yInfo("EMGserver: thread created");
@@ -212,9 +212,9 @@ class EMGserverThread: public RateThread
     {
         bool isConnected = false;
 
-       if(!FAKE_EMG_DATA){
+        if(!FAKE_EMG_DATA){
 
-           isConnected = emgCon.connect2Server();
+            isConnected = emgCon.connect2Server();
 
             if(isConnected==false)
             {
@@ -222,8 +222,8 @@ class EMGserverThread: public RateThread
                 return false;
             }
 
-       }
-       else std::cout << "[WARNING] Sending Fake EMG Data (for debugging/developing)"<<endl;
+        }
+        else std::cout << "[WARNING] Sending Fake EMG Data (for debugging/developing)"<<endl;
 
         // //creating the thread for the sensors
         delTh = new DelsysThread(&emgCon);
@@ -259,7 +259,7 @@ class EMGserverThread: public RateThread
         raw.interrupt();
         raw.close();
         filtered.interrupt();
-        filtered.close();        
+        filtered.close();
 
         // closing connection with TCP server of Delsys if needed
         // //------> closing connection with delsys is done by the other thread;
@@ -273,56 +273,56 @@ class EMGserverThread: public RateThread
         count++;
         // cyclic operations should be put here!
         
-        std::vector<float> rawData(16,0.0); 
-        std::vector<double> filteredData(16,0.0); 
+        std::vector<float> rawData(16,0.0);
+        std::vector<double> filteredData(16,0.0);
 
 
         // read raw sensors from EMG
         //m.lock();
-            rawData = delTh->getRawData();            
-            filteredData = delTh->getFilteredData();
+        rawData = delTh->getRawData();
+        filteredData = delTh->getFilteredData();
         //m.unlock();
 
         if(rawData.size() > 0){
 
-//                cout << " [INFO] status: "<< status_;
+            //                cout << " [INFO] status: "<< status_;
 
-                if(CHECK_BIT(status_,2) && CHECK_BIT(status_,0)){ //if streaming raw data
-                    //cout << endl<<"[SLOW THREAD] "<<filteredData[0];
+            if(CHECK_BIT(status_,2) && CHECK_BIT(status_,0)){ //if streaming raw data
+                //cout << endl<<"[SLOW THREAD] "<<filteredData[0];
 
-                    // send output to raw port
-                    //
-                    Bottle& outputRaw = raw.prepare();
-                    outputRaw.clear();
+                // send output to raw port
+                //
+                Bottle& outputRaw = raw.prepare();
+                outputRaw.clear();
 
-                    //send only the configured sensors for this application
-                    for(auto id:senIds_){
-                        outputRaw.addInt(id);
-                        outputRaw.addDouble(rawData[id-1]);
-                    }
-
-                    raw.write();
-//                    cout << "[DEBUG] [RAW DATA] "<<outputRaw.toString()<<endl;
+                //send only the configured sensors for this application
+                for(auto id:senIds_){
+                    outputRaw.addInt(id);
+                    outputRaw.addDouble(rawData[id-1]);
                 }
 
+                raw.write();
+                //                    cout << "[DEBUG] [RAW DATA] "<<outputRaw.toString()<<endl;
+            }
 
-                if(CHECK_BIT(status_,2) && CHECK_BIT(status_,1)){ //if streaming filtered
 
-                    // send output to filtered port
-                    // 
-                    Bottle& outputFil = filtered.prepare();
-                    outputFil.clear();
+            if(CHECK_BIT(status_,2) && CHECK_BIT(status_,1)){ //if streaming filtered
 
-                    //send only the configured sensors for this application
-                    for(auto id:senIds_){
-                        outputFil.addInt(id);
-                        outputFil.addDouble(filteredData[id-1]);
-                    }
+                // send output to filtered port
+                //
+                Bottle& outputFil = filtered.prepare();
+                outputFil.clear();
 
-                    filtered.write();
-//                    cout << "[DEBUG] [FIL DATA] "<<outputFil.toString()<<endl;
-                    
+                //send only the configured sensors for this application
+                for(auto id:senIds_){
+                    outputFil.addInt(id);
+                    outputFil.addDouble(filteredData[id-1]);
                 }
+
+                filtered.write();
+                //                    cout << "[DEBUG] [FIL DATA] "<<outputFil.toString()<<endl;
+
+            }
 
         }
         
@@ -340,7 +340,7 @@ private:
     // counter for the number of minutes of execution
     int count;
     // the port to handle messages
-    Port rpc; 
+    Port rpc;
     // name of the module, used for creating ports
     string name;
     // rate of the server  hread, expressed in seconds: e.g, 20 ms => 0.02
@@ -403,23 +403,23 @@ public:
             cout<<"[INFO] " << reply.toString()<<endl;
 
             return true;
-        }  
+        }
         else if(cmd=="stop")
         {
             yInfo("\n stopping data stream");
-                status_ &= ~(STATUS_STREAMING);
-                serverThread->stopCaptureData(status_);
+            status_ &= ~(STATUS_STREAMING);
+            serverThread->stopCaptureData(status_);
 
         }
         else if(cmd=="start")
         {
             yInfo("\n starting data stream");
 
-                status_ |= STATUS_STREAMING;
-                serverThread->startCaptureData(status_);
+            status_ |= STATUS_STREAMING;
+            serverThread->startCaptureData(status_);
 
 
-        } 
+        }
         else if(cmd=="status")
         {
             reply.clear();
@@ -456,7 +456,7 @@ public:
             return true;
         }
 
- 
+
         reply.clear();
         reply.addString("UNSURE");
         reply.addString(command.get(0).asString());
@@ -476,12 +476,12 @@ public:
             name    = "EMGserver";
         //....................................................
         readValue(rf,"rate",rate,0.01); //10 ms is the default rate for the thread
-                                        // ipAdd_
+        // ipAdd_
 
         bool streamingRaw = false;
         bool streamingFiltered = false;
         std::vector<int> senIds;
-                                                
+
         readValue(rf,"ip_add",ipAdd_,"169.254.1.165");
         readValue(rf,"raw",streamingRaw,true);
         readValue(rf,"filter",streamingFiltered,true);
@@ -498,7 +498,7 @@ public:
         DSCPA(ipAdd_);
 
         DSCPAstdvec(senIds);
-       
+
 
         //creating the thread for the server
         serverThread = new EMGserverThread(rate,name,ipAdd_,status_,nSensors_, senIds);
@@ -508,8 +508,8 @@ public:
             delete serverThread;
             return false;
         }
-       
-    
+
+
         //attach a port to the module, so we can send messages
         //and choose the type of grasp to execute
         //messages received from the port are redirected to the respond method
@@ -530,7 +530,7 @@ public:
         yInfo("EMGserver: closing RPC port");
         rpc.interrupt();
         rpc.close();
-                
+
         return true;
     }
 };
@@ -542,16 +542,16 @@ public:
 //---------------------------------------------------------
 int main(int argc, char * argv[])
 {
-   
+
     ResourceFinder rf;
     rf.setDefaultContext("emg-processing");
     rf.setDefaultConfigFile("emg_delsys.ini");
     rf.configure(argc,argv);
-  
+
     if (rf.check("help"))
     {
-		printf("\n");
-		yInfo("[EMGserver] Options:");
+        printf("\n");
+        yInfo("[EMGserver] Options:");
         yInfo("  --context           path:   where to find the called resource (default emg-processing).");
         yInfo("  --from              from:   the name of the .ini file (default emg_delsys.ini).");
         yInfo("  --name              name:   the name of the module (default EMGserver).");
