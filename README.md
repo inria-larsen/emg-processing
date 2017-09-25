@@ -41,17 +41,16 @@ make install
 ### Concept
 
 There is a server module, `EMGserver` that is connected to the TCP server of the Delsys. This module makes a first online filtering of the signals.
-The module `EMGhuman` is used to retrieve the signals (raw or filtered), selecting those that are actually used by the human, and computing some quantities (stiffnes, ICC, effort..).
-The module `EMGhuman2robot` is used to retrieve the computed quantities and update the robot's motion/compliance level according to some pre-defined policies.
+The module `EMGhuman` is used to retrieve the filtered EMG signal, selecting those that are actually used by this human, and computing an index of co-contraction for each pair of antagonyst muscles.
+The module `EMGhuman2robot` is used to retrieve the icc pairs and update the robot's motion/compliance level according to some pre-defined policies.
 
-TODO: output from emgserver to emghuman modules is ambiguous, separate outputs accordingly; Identify the rest of the inputs and outputs in the architecture image.
 
 ![alt text](https://github.com/inria-larsen/emg-processing/blob/master/doc/img/schema.png "Software concept")
 
 
 ### Setup and launch of the Delsys server
 
-Firstly the user must guarantee that both the host computer (the one running Delsys software), and the client computer (the one running **emg-processin** modules) are connected to the same network.
+Firstly, the user must guarantee that both the host computer (the one running Delsys software), and the client computer (the one running **emg-processin** modules) are connected to the same network.
 
 
  TODO: Complete with the rest of the procedures ...
