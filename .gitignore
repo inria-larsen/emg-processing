@@ -39,3 +39,7 @@ build/
 CMakeLists\.txt\.user
 
 *.autosave
+
+CMakeCache\.txt
+
+CMakeFiles/cmake\.check_cache
