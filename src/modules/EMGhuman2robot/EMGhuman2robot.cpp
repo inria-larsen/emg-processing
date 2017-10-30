@@ -18,6 +18,7 @@
 #include <fstream>
 #include <iostream>
 #include <emgutils.h>
+#include "robot_interfaces.h"
 
 using namespace std;
 using namespace yarp::os;
@@ -35,25 +36,53 @@ protected:
     
     Port emgHuman;
     Vector stiffness_arm, stiffness_torso, damping_arm, damping_torso;
+    int behaviorStatus;
+    string robot_name_;
+    robot_interfaces *robot;
+    bool useRightArm;
+    bool useTorso;
+    bool useLeftArm;
     
 public:
-    CtrlThread(const double period) : RateThread(int(period*1000.0))
+    CtrlThread(const double period, string robot_name) : RateThread(int(period*1000.0))
     {
 //        // we wanna raise an event each time the arm is at 20%
 //        // of the trajectory (or 80% far from the target)
 //        cartesianEventParameters.type="motion-ongoing";
 //        cartesianEventParameters.motionOngoingCheckPoint=0.2;
+        
+        robot_name_=robot_name;
+    }
+    
+    ~CtrlThread()
+    {
+        yInfo("Disconnecting the robot");
+        delete robot;
+        
     }
 
-    virtual bool threadInit(){
+    virtual bool threadInit()
+    {
 
-        //open yarp input ports
+        //open yarp input ports (connection to EMGhuman)
+        
+        
+        //connect to robot
+        robot = new robot_interfaces();
+        if (robot->init(robot_name_) == false)
+        {
+             yError("Failed to connect to the robot");
+             delete robot;
+             return false;
+        }
+        
 
         return true;
 
     }
 
-    virtual void afterStart(bool s){
+    virtual void afterStart(bool s)
+    {
 
     }
     
@@ -63,43 +92,88 @@ public:
         return true;
     }
 
-    virtual void run(){
+    virtual void run()
+    {
 
         //read icc values from EMGhuman module
         // read from port
         readFromEmg();
 
-        //get trajectory point from proMP or file
-
-        //control strategy
+        //depending on compliance strategy, set values to the robot
+        setRobotBehavior();
 
         //print status on screen
         printStatus();
 
     }
-    virtual void threadRelease(){
+    
+    virtual void threadRelease()
+    {
         //close all yarp ports
     }
 
     /**
      * @brief printStatus logs on the screen the current status of the robot/system
      */
-    void printStatus(){
+    void printStatus()
+    {
 
     }
     
+    // Follower is zero torque control
     bool beFollower()
     {
+        if(useTorso)
+        {
+            robot->iimp[TORSO]->setImpedance(0, 0.0, 0.0);
+            robot->iimp[TORSO]->setImpedance(1, 0.0, 0.0);
+            robot->iimp[TORSO]->setImpedance(2, 0.1, 0.0);
+            robot->icmd[TORSO]->setTorqueMode(0);
+            robot->icmd[TORSO]->setTorqueMode(1);
+            //3rd joint of torso is never in torque control (see demoForceControl)
+            robot->icmd[TORSO]->setPositionMode(2);
+            robot->iint[TORSO]->setInteractionMode(2, VOCAB_IM_COMPLIANT);
+        }
         
+        if(useLeftArm)
+        {
+            robot->iimp[LEFT_ARM]->setImpedance(0, 0.0, 0.0);
+            robot->iimp[LEFT_ARM]->setImpedance(1, 0.0, 0.0);
+            robot->iimp[LEFT_ARM]->setImpedance(2, 0.0, 0.0);
+            robot->iimp[LEFT_ARM]->setImpedance(3, 0.0, 0.0);
+            robot->iimp[LEFT_ARM]->setImpedance(4, 0.0, 0.0);
+            robot->icmd[LEFT_ARM]->setTorqueMode(0);
+            robot->icmd[LEFT_ARM]->setTorqueMode(1);
+            robot->icmd[LEFT_ARM]->setTorqueMode(2);
+            robot->icmd[LEFT_ARM]->setTorqueMode(3);
+            robot->icmd[LEFT_ARM]->setTorqueMode(4);
+        }
+        
+        if(useRightArm)
+        {
+            robot->iimp[RIGHT_ARM]->setImpedance(0, 0.0, 0.0);
+            robot->iimp[RIGHT_ARM]->setImpedance(1, 0.0, 0.0);
+            robot->iimp[RIGHT_ARM]->setImpedance(2, 0.0, 0.0);
+            robot->iimp[RIGHT_ARM]->setImpedance(3, 0.0, 0.0);
+            robot->iimp[RIGHT_ARM]->setImpedance(4, 0.0, 0.0);
+            robot->icmd[RIGHT_ARM]->setTorqueMode(0);
+            robot->icmd[RIGHT_ARM]->setTorqueMode(1);
+            robot->icmd[RIGHT_ARM]->setTorqueMode(2);
+            robot->icmd[RIGHT_ARM]->setTorqueMode(3);
+            robot->icmd[RIGHT_ARM]->setTorqueMode(4);
+        
+        }
         return true;
     }
     
+    // Leader is high stiffness
     bool beLeader()
     {
         
         return true;
     }
     
+    // Adaptive Behavior depends on the policy
     bool beAdaptive()
     {
         
@@ -111,6 +185,15 @@ public:
         
         return true;
     }
+    
+    bool setRobotBehavior()
+    {
+
+
+        
+        return true;
+    }
+    
     
     
 
