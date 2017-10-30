@@ -19,19 +19,10 @@
 #include <iostream>
 #include <emgutils.h>
 
-
 using namespace std;
 using namespace yarp::os;
 using namespace yarp::sig;
 using namespace EmgUtils;
-
-// utils for printing parameters
-#define DSCPA(V) cout<<"  "<< #V <<" : "<<V<<endl;
-#define DSCPAv(V) cout<<"  "<< #V <<" : "<<V.toString()<<endl;
-#define DSCPAs(S,V) cout<<"  "<< S <<" : "<<V.toString()<<endl;
-#define DSCPAd(S,V) cout<<"  "<< S <<" : "<<V<<endl;
-
-
 
 //===============================
 //        EMGhuman MODULE
