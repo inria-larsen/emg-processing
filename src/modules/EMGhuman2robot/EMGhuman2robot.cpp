@@ -43,6 +43,8 @@ public:
 
     virtual bool threadInit(){
 
+        //open yarp input ports
+
         return true;
 
     }
@@ -53,9 +55,18 @@ public:
 
     virtual void run(){
 
+        //read icc values from EMGhuman module
+
+        //get trajectory point from proMP or file
+
+        //control strategy
+
+        //print status on screen
+        printStatus();
+
     }
     virtual void threadRelease(){
-
+        //close all yarp ports
     }
 
     /**
