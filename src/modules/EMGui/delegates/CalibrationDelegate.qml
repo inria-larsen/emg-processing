@@ -32,6 +32,7 @@ Item {
             anchors.bottom: calibBut.top
         }
 
+
         Text{
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
@@ -107,6 +108,16 @@ Item {
 
             }
         }
+    }
+    Rectangle{
+        id: selectSensor
+        width:500
+        height:30
+        color:"#424246"
+//        border.color: "black"
+//        border.width: 4
+        z:-1
+        visible: ((operator && emgUi.opSelectedSensor === sensorId) || (!operator && emgUi.colSelectedSensor === sensorId) )? 1:0
     }
 
 }

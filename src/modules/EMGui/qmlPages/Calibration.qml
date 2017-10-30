@@ -144,7 +144,7 @@ Item {
         height: 60
         text: opTimerRestCountDown
         font.pixelSize: 50
-        color: "red"
+        color: "white"
         anchors.horizontalCenter: button.horizontalCenter
         anchors.top:button.bottom
         anchors.topMargin: 10
@@ -176,7 +176,7 @@ Item {
         height: 110
         text: opTimerCountDown
         font.pixelSize: 100
-        color: "red"
+        color: "black"
     }
 
     //===========
@@ -304,7 +304,7 @@ Item {
         height: 60
         text: colTimerRestCountDown
         font.pixelSize: 50
-        color: "red"
+        color: "white"
         anchors.horizontalCenter: colButton.horizontalCenter
         anchors.top:colButton.bottom
         anchors.topMargin: 10
@@ -335,7 +335,7 @@ Item {
         height: 110
         text: colTimerCountDown
         font.pixelSize: 100
-        color: "red"
+        color: "black"
     }
 
 
