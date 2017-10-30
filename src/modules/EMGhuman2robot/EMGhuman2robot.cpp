@@ -99,7 +99,10 @@ public:
         // read from port
         readFromEmg();
 
-        //depending on compliance strategy, set values to the robot
+        //depending on compliance strategy, compute values
+        computeStiffnessAccordingToPolicy();
+        
+        //set correct values to the robot
         setRobotBehavior();
 
         //print status on screen
@@ -173,23 +176,128 @@ public:
         return true;
     }
     
+    bool beLowStiffness()
+    {
+        if(useRightArm)
+        {
+            robot->iimp[RIGHT_ARM]->setImpedance(0,0.2,0.0);
+            robot->iimp[RIGHT_ARM]->setImpedance(1,0.2,0.0);
+            robot->iimp[RIGHT_ARM]->setImpedance(2,0.2,0.0);
+            robot->iimp[RIGHT_ARM]->setImpedance(3,0.2,0.0);
+            robot->iimp[RIGHT_ARM]->setImpedance(4,0.1,0.0);
+            robot->icmd[RIGHT_ARM]->setPositionMode(0);
+            robot->icmd[RIGHT_ARM]->setPositionMode(1);
+            robot->icmd[RIGHT_ARM]->setPositionMode(2);
+            robot->icmd[RIGHT_ARM]->setPositionMode(3);
+            robot->icmd[RIGHT_ARM]->setPositionMode(4);
+            robot->iint[RIGHT_ARM]->setInteractionMode(0, VOCAB_IM_COMPLIANT);
+            robot->iint[RIGHT_ARM]->setInteractionMode(1, VOCAB_IM_COMPLIANT);
+            robot->iint[RIGHT_ARM]->setInteractionMode(2, VOCAB_IM_COMPLIANT);
+            robot->iint[RIGHT_ARM]->setInteractionMode(3, VOCAB_IM_COMPLIANT);
+            robot->iint[RIGHT_ARM]->setInteractionMode(4, VOCAB_IM_COMPLIANT);
+        }
+        
+        if(useLeftArm)
+        {
+            robot->iimp[LEFT_ARM]->setImpedance(0,0.2,0.0);
+            robot->iimp[LEFT_ARM]->setImpedance(1,0.2,0.0);
+            robot->iimp[LEFT_ARM]->setImpedance(2,0.2,0.0);
+            robot->iimp[LEFT_ARM]->setImpedance(3,0.2,0.0);
+            robot->iimp[LEFT_ARM]->setImpedance(4,0.1,0.0);
+            robot->icmd[LEFT_ARM]->setPositionMode(0);
+            robot->icmd[LEFT_ARM]->setPositionMode(1);
+            robot->icmd[LEFT_ARM]->setPositionMode(2);
+            robot->icmd[LEFT_ARM]->setPositionMode(3);
+            robot->icmd[LEFT_ARM]->setPositionMode(4);
+            robot->iint[LEFT_ARM]->setInteractionMode(0, VOCAB_IM_COMPLIANT);
+            robot->iint[LEFT_ARM]->setInteractionMode(1, VOCAB_IM_COMPLIANT);
+            robot->iint[LEFT_ARM]->setInteractionMode(2, VOCAB_IM_COMPLIANT);
+            robot->iint[LEFT_ARM]->setInteractionMode(3, VOCAB_IM_COMPLIANT);
+            robot->iint[LEFT_ARM]->setInteractionMode(4, VOCAB_IM_COMPLIANT);
+        }
+        
+        if(useTorso)
+        {
+            robot->iimp[TORSO]->setImpedance(0,0.1,0.0);
+            robot->iimp[TORSO]->setImpedance(1,0.1,0.0);
+            robot->iimp[TORSO]->setImpedance(2,0.1,0.0);
+            robot->icmd[TORSO]->setPositionMode(0);
+            robot->icmd[TORSO]->setPositionMode(1);
+            robot->icmd[TORSO]->setPositionMode(2);
+            robot->iint[TORSO]->setInteractionMode(0, VOCAB_IM_COMPLIANT);
+            robot->iint[TORSO]->setInteractionMode(1, VOCAB_IM_COMPLIANT);
+            robot->iint[TORSO]->setInteractionMode(2, VOCAB_IM_COMPLIANT);
+        }
+        
+        return true;
+    }
+    
+    bool beMediumStiffness()
+    {
+        if(useRightArm)
+        {
+
+        }
+        
+        if(useLeftArm)
+        {
+
+        }
+        
+        if(useTorso)
+        {
+
+        }
+        
+        return true;
+    }
+    
+    bool beHighStiffness()
+    {
+        if(useRightArm)
+        {
+            
+        }
+        
+        if(useLeftArm)
+        {
+            
+        }
+        
+        if(useTorso)
+        {
+            
+        }
+        
+        return true;
+    }
+    
     // Adaptive Behavior depends on the policy
     bool beAdaptive()
     {
+        readFromEmg();
+        computeStiffnessAccordingToPolicy();
+        setRobotBehavior(arm_stiff, arm_damp, torso_stiff, torso_damp);
+        
+        return true;
+    }
+    
+    bool computeStiffnessAccordingToPolicy()
+    {
+        
+        return true;
+    }
+    
+    bool setRobotBehavior(Vector arm_stiff, Vector arm_damp, Vector torso_stiff, Vector torso_damp)
+    {
+
+
         
         return true;
     }
     
     bool changeAdaptivePolicy()
     {
-        
-        return true;
-    }
-    
-    bool setRobotBehavior()
-    {
-
-
         
         return true;
     }
