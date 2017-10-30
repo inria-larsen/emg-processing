@@ -1,7 +1,7 @@
 /*
  * EMG human2robot 
  * 
- * Author: Serena Ivaldi
+ * Author: Serena Ivaldi, Waldez A. Gomes
  * email:  serena.ivaldi@inria.fr
  *
  * Permission is granted to copy, distribute, and/or modify this program
@@ -32,6 +32,10 @@ using namespace EmgUtils;
 class CtrlThread: public RateThread
 {
 protected:
+    
+    Port emgHuman;
+    Vector stiffness_arm, stiffness_torso, damping_arm, damping_torso;
+    
 public:
     CtrlThread(const double period) : RateThread(int(period*1000.0))
     {
@@ -52,10 +56,18 @@ public:
     virtual void afterStart(bool s){
 
     }
+    
+    bool readFromEmg()
+    {
+        
+        return true;
+    }
 
     virtual void run(){
 
         //read icc values from EMGhuman module
+        // read from port
+        readFromEmg();
 
         //get trajectory point from proMP or file
 
@@ -75,6 +87,32 @@ public:
     void printStatus(){
 
     }
+    
+    bool beFollower()
+    {
+        
+        return true;
+    }
+    
+    bool beLeader()
+    {
+        
+        return true;
+    }
+    
+    bool beAdaptive()
+    {
+        
+        return true;
+    }
+    
+    bool changeAdaptivePolicy()
+    {
+        
+        return true;
+    }
+    
+    
 
 };
 
@@ -89,6 +127,11 @@ private:
     Port rpc_; // the port to handle messages
     int count_;
     double rate_;
+    
+    Vector stiffness_high_arm, stiffness_high_torso, damping_high_arm, damping_high_torso;
+    Vector stiffness_medium_arm, stiffness_medium_torso, damping_medium_arm, damping_medium_torso;
+    Vector stiffness_low_arm, stiffness_low_torso, damping_low_arm, damping_low_torso;
+    Vector stiffness_follower_arm, stiffness_follower_torso, damping_follower_arm, damping_follower_torso;
 
     //
     string name_;
@@ -145,6 +188,40 @@ public:
         else if(cmd=="status")
         {
 
+        }
+        else if(cmd=="leader_behavior")
+        {
+            
+        }
+        else if(cmd=="follower_behavior")
+        {
+            
+        }
+        else if(cmd=="mixed_behavior")
+        {
+            ConstString config = command.get(1).asString();
+            cout<<"second command = "<<config<<endl;
+            if(config=="direct_linear")
+            {
+                
+            }
+            if(config=="inverse_linear")
+            {
+                
+            }
+            if(config=="direct_3classes")
+            {
+                
+            }
+            if(config=="inverse_3classes")
+            {
+                
+            }
+            else
+            {
+                
+            }
+            
         }
         else if(cmd=="filtering")
         {
