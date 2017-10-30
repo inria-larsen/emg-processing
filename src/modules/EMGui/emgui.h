@@ -54,6 +54,12 @@ public slots:
      */
     void beep();
 
+    /**
+     * @brief outputs a different sound than beep() to indicate relevant events at the GUI.
+     * Currently works ONLY on UBUNTU.
+     */
+    void beep2();
+
     //Getters
     double rate() const;
     double calibDur() const;

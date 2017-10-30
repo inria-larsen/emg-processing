@@ -152,7 +152,7 @@ Item {
                 opTimerCountDown = emgUi.calibDur;
 //                opRest = true;
                 opRestTimer.start();
-                emgUi.beep();
+                emgUi.beep2();
             }
         }
     }
@@ -298,7 +298,7 @@ Item {
                 colTimerCountDown = emgUi.calibDur;
 //                colRest = true;
                 colRestTimer.start();
-                emgUi.beep();
+                emgUi.beep2();
             }
         }
     }

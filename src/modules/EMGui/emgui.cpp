@@ -271,4 +271,12 @@ void EmGui::beep()
     ret = system(s.c_str());
 }
 
+void EmGui::beep2()
+{
+    //ONLY WORKS WITH UBUNTU!!!
+    int ret;
+    string s("paplay /usr/share/sounds/freedesktop/stereo/screen-capture.oga");
+    ret = system(s.c_str());
+}
+
 
