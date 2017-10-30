@@ -24,18 +24,64 @@ using namespace yarp::os;
 using namespace yarp::sig;
 using namespace EmgUtils;
 
+
+//=====================================
+//        EMGhuman2robot control thread
+//=====================================
+
+class CtrlThread: public RateThread
+{
+protected:
+public:
+    CtrlThread(const double period) : RateThread(int(period*1000.0))
+    {
+//        // we wanna raise an event each time the arm is at 20%
+//        // of the trajectory (or 80% far from the target)
+//        cartesianEventParameters.type="motion-ongoing";
+//        cartesianEventParameters.motionOngoingCheckPoint=0.2;
+    }
+
+    virtual bool threadInit(){
+
+    }
+
+    virtual void afterStart(bool s){
+
+    }
+
+    virtual void run(){
+
+    }
+    virtual void threadRelease(){
+
+    }
+
+    /**
+     * @brief printStatus logs on the screen the current status of the robot/system
+     */
+    void printStatus(){
+
+    }
+
+};
+
 //===============================
-//        EMGhuman MODULE
+//        EMGhuman RFMODULE
 //===============================
+
 class EMGhuman2robot: public RFModule
 {
 private:
 
-    Port rpc; // the port to handle messages
-    int count;
+    Port rpc_; // the port to handle messages
+    int count_;
+    double rate_;
 
     //
-    string name;
+    string name_;
+    std::vector<std::pair<int,int>> iccPairs_;
+
+    CtrlThread *controlTh_;
     //
 
 
@@ -44,7 +90,7 @@ public:
     //---------------------------------------------------------
     EMGhuman2robot()
     {
-        count=0;
+        count_=0;
     }
 
     //---------------------------------------------------------
@@ -53,9 +99,9 @@ public:
     //---------------------------------------------------------
     bool updateModule()
     {
-        if(count%60==0)
-            cout<<" EMGhuman2robot alive since "<<(count/60)<<" mins ... "<<endl;
-        count++;
+        if(count_%60==0)
+            cout<<" EMGhuman2robot alive since "<<(count_/60)<<" mins ... "<<endl;
+        count_++;
         return true;
     }
 
@@ -135,22 +181,32 @@ public:
         Time::turboBoost();
 
         if(rf.check("name"))
-            name    = rf.find("name").asString();
+            name_    = rf.find("name").asString();
         else
-            name    = "EMGhuman2robot";
+            name_    = "EMGhuman2robot";
         //....................................................
         
+        readValue(rf,"rate",rate_,0.01); //10 ms is the default rate for the thread
+        readParams(rf,"iccPairs",iccPairs_);
 
         cout<<"Parameters from init file: "<<endl;
-        DSCPA(name);
+        DSCPA(name_);
+        DSCPA(rate_);
+        DSCPAstdvecpair(iccPairs_);
        
-       
+        controlTh_ = new CtrlThread(rate_);
+        if(!controlTh_->start())
+        {
+            yError("EMGhuman2robot: cannot start the control thread. Aborting.");
+            delete controlTh_;
+            return false;
+        }
     
         //attach a port to the module, so we can send messages
         //and choose the type of grasp to execute
         //messages received from the port are redirected to the respond method
-        rpc.open(string("/"+name+"/rpc:i").c_str());
-        attach(rpc);
+        rpc_.open(string("/"+name_+"/rpc:i").c_str());
+        attach(rpc_);
 
         return true;
     }
@@ -167,11 +223,12 @@ public:
     //---------------------------------------------------------
     bool close()
     {
-       
+        controlTh_->stop();
+        delete controlTh_;
 
         cout<<"Close rpc port"<<endl;
-        rpc.interrupt();
-        rpc.close();
+        rpc_.interrupt();
+        rpc_.close();
         Time::delay(0.2);
 
         
