@@ -43,6 +43,8 @@ public:
 
     virtual bool threadInit(){
 
+        return true;
+
     }
 
     virtual void afterStart(bool s){
