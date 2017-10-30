@@ -11,6 +11,10 @@ Item {
     property int opTimerCountDown: emgUi.calibDur
     property int colTimerCountDown: emgUi.calibDur
 
+    property int opTimerRestCountDown: 60
+    property int colTimerRestCountDown: 60
+
+    //Global properties used by the calibration delegates
     property bool colRest: false
     property bool opRest: false
 
@@ -108,18 +112,36 @@ Item {
     }
     Timer{
         id:opRestTimer
-        interval: 60*1000
+        interval: 1*1000
         running: false
-        repeat: false
+        repeat: true
         onTriggered: {
-            opRest = false;
+
+            opTimerRestCountDown = opTimerRestCountDown - 1;
+            if(opTimerRestCountDown == 0){
+                opRestTimer.stop();
+                opTimerRestCountDown = 60;
+                opRest = false;
+            }
         }
+    }
+
+    Text {
+        id: textOpRestTimer
+        width: 60
+        height: 60
+        text: opTimerRestCountDown
+        font.pixelSize: 50
+        color: "red"
+        anchors.horizontalCenter: button.horizontalCenter
+        anchors.top:button.bottom
+        anchors.topMargin: 10
     }
 
 
     Timer{
         id:opCalibTimer
-        interval: 1 * 1000 // 100 Hz
+        interval: 1 * 1000 // 1 Hz
         running: false
         repeat: true
         onTriggered: {
@@ -237,17 +259,35 @@ Item {
 
     Timer{
         id:colRestTimer
-        interval: 60*1000
+        interval: 1*1000
         running: false
-        repeat: false
+        repeat: true
         onTriggered: {
-            colRest = false;
+
+            colTimerRestCountDown = colTimerRestCountDown - 1;
+            if(colTimerRestCountDown == 0){
+                colRestTimer.stop();
+                colTimerRestCountDown = 60;
+                colRest = false;
+            }
         }
+    }
+
+    Text {
+        id: textColRestTimer
+        width: 60
+        height: 60
+        text: colTimerRestCountDown
+        font.pixelSize: 50
+        color: "red"
+        anchors.horizontalCenter: colButton.horizontalCenter
+        anchors.top:colButton.bottom
+        anchors.topMargin: 10
     }
 
     Timer{
         id:colCalibTimer
-        interval: 1 * 1000 // 100 Hz
+        interval: 1 * 1000 // 1 Hz
         running: false
         repeat: true
         onTriggered: {
@@ -297,7 +337,7 @@ Item {
         Button{
             id:testSoundButton
             anchors.top : colButton.bottom
-            anchors.topMargin: 25
+            anchors.topMargin: 75
             anchors.horizontalCenter: colButton.horizontalCenter
             text:"Test BIP Sound"
             onClicked: {
