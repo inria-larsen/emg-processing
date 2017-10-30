@@ -46,14 +46,26 @@ Item {
     ProgressBar {
         id:mvcLevel
         width: 500
-        height: 50
-        anchors.bottomMargin: 225
+        height: 150
+        anchors.bottomMargin: 175
         anchors.left: muscleImg.right
-        anchors.leftMargin: -160
+        anchors.leftMargin: -150
         anchors.bottom: muscleImg.bottom
         rotation: -90
         value: emgUi.opBarLevel
         maximumValue: 0.0025
+    }
+    Text {
+        id: textOpBarLevel
+        width: 60
+        height: 60
+        text: emgUi.opBarLevel.toFixed(6)
+        font.pixelSize: 30
+        color: "blue"
+        style: Text.Outline; styleColor: "white"
+        anchors.bottom: button.top
+        anchors.left:button.left
+        anchors.bottomMargin: -30
     }
 
     Button {
@@ -191,15 +203,28 @@ Item {
     ProgressBar {
         id:colMvcLevel
         width: 500
-        height: 50
-        anchors.bottomMargin: 225
+        height: 150
+        anchors.bottomMargin: 175
         anchors.left: colMuscleImg.right
-        anchors.leftMargin: -160
+        anchors.leftMargin: -150
         anchors.bottom: colMuscleImg.bottom
         rotation: -90
         value: emgUi.colBarLevel
         maximumValue: 0.0025
 
+    }
+
+    Text {
+        id: textColBarLevel
+        width: 60
+        height: 60
+        text: emgUi.colBarLevel.toFixed(6)
+        font.pixelSize: 30
+        color: "blue"
+        style: Text.Outline; styleColor: "white"
+        anchors.bottom: colButton.top
+        anchors.left:colButton.left
+        anchors.bottomMargin: -30
     }
     Button {
         id: colButton
