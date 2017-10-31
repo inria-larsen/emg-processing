@@ -90,6 +90,9 @@ public slots:
     void colCalibrateMax();
     void colSaveCalibration(void);
 
+    QString sendOp2RobotRPC(QString cmdStr);
+    QString sendCol2RobotRPC(QString cmdStr);
+
 
 signals:
     void rateChanged(void);
@@ -124,6 +127,9 @@ private:
     BufferedPort<Bottle> inPortEmg_; //input port
     RpcClient opRpcClientPort_; // RPC port for the human operator
     RpcClient colRpcClientPort_; // RPC port for the human collaborator
+
+    RpcClient op2RobotRpcClientPort_;//RPC port for the operator2robot stiffness module
+    RpcClient col2RobotRpcClientPort_; // RPC port for the collaborator2robot stiffness module
 
 
 

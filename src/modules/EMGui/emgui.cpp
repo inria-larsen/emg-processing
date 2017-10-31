@@ -13,6 +13,9 @@ EmGui::EmGui(QObject *parent)
     opRpcClientPort_.open(std::string("/emGui/op/rpc").c_str());
     colRpcClientPort_.open(std::string("/emGui/col/rpc").c_str());
 
+    op2RobotRpcClientPort_.open(std::string("/emGui/op2robot/rpc").c_str());
+    col2RobotRpcClientPort_.open(std::string("/emGui/col2robot/rpc").c_str());
+
 }
 
 void EmGui::close()
@@ -27,6 +30,12 @@ void EmGui::close()
 
     colRpcClientPort_.interrupt();
     colRpcClientPort_.close();
+
+    op2RobotRpcClientPort_.interrupt();
+    op2RobotRpcClientPort_.close();
+
+    col2RobotRpcClientPort_.interrupt();
+    col2RobotRpcClientPort_.close();
 
     yInfo("EmGui closing");
 
@@ -259,6 +268,46 @@ void EmGui::colSaveCalibration()
 
         //TODO: send response to QML and act accordingly
     }
+}
+
+QString EmGui::sendOp2RobotRPC(QString cmdStr)
+{
+    if(op2RobotRpcClientPort_.getOutputCount() > 0){
+        Bottle cmd;
+        cmd.addString(cmdStr.toStdString().c_str());
+
+        std::cout<<"[INFO] Sending cmd to operator2robot module: " <<cmd.toString().c_str() << "."<<endl;
+
+        Bottle response;
+        op2RobotRpcClientPort_.write(cmd,response);
+
+        std::cout<<"[INFO] Got response from operator2robot module: "<<response.toString().c_str() <<"."<<endl;
+
+        return QString(response.toString().c_str());
+
+    }
+
+    return QString("NOT CONNECTED");
+}
+
+QString EmGui::sendCol2RobotRPC(QString cmdStr)
+{
+    if(col2RobotRpcClientPort_.getOutputCount() > 0){
+        Bottle cmd;
+        cmd.addString(cmdStr.toStdString().c_str());
+
+        std::cout<<"[INFO] Sending cmd to collaborator2robot module: " <<cmd.toString().c_str() << "."<<endl;
+
+        Bottle response;
+        col2RobotRpcClientPort_.write(cmd,response);
+
+        std::cout<<"[INFO] Got response from collaborator2robot module: "<<response.toString().c_str() <<"."<<endl;
+
+        return QString(response.toString().c_str());
+
+    }
+
+    return QString("NOT CONNECTED");
 }
 
 void EmGui::beep()

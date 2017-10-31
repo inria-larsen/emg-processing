@@ -92,19 +92,19 @@ ApplicationWindow {
                              event.accepted = true;
                          }
 
-//        initialItem: Item {
-//            width: parent.width
-//            height: parent.height
-//            ListView {
-//                model: pageModel
-//                anchors.fill: parent
-//                delegate: MenuDelegate {
-//                    text: title
-//                    onClicked: stackView.push(Qt.resolvedUrl(page))
-//                }
-//            }
-//        }
-        initialItem: Calibration{} //for now we only need the calibration
+        initialItem: Item {
+            width: parent.width
+            height: parent.height
+            ListView {
+                model: pageModel
+                anchors.fill: parent
+                delegate: MenuDelegate {
+                    text: title
+                    onClicked: stackView.push(Qt.resolvedUrl(page))
+                }
+            }
+        }
+//        initialItem: Calibration{} //for now we only need the calibration
     }
 
 
