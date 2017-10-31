@@ -2,7 +2,7 @@
  * EMG human2robot 
  * 
  * Author: Serena Ivaldi, Waldez A. Gomes
- * email:  serena.ivaldi@inria.fr
+ * email:  serena.ivaldi@inria.fr, waldezjr14@gmail.com
  *
  * Permission is granted to copy, distribute, and/or modify this program
  * under the terms of the GNU General Public License, version 2 or any
@@ -23,7 +23,13 @@
 using namespace std;
 using namespace yarp::os;
 using namespace yarp::sig;
+using namespace yarp::dev;
 using namespace EmgUtils;
+
+#define POLICY_DIRECT 0
+#define POLICY_DIRECT_3_STATES 1
+#define POLICY_INVERSE 2
+#define POLICY_MANUAL 3
 
 
 //=====================================
@@ -34,30 +40,27 @@ class CtrlThread: public RateThread
 {
 protected:
     
-    Port emgHuman;
-    Vector stiffness_arm, stiffness_torso, damping_arm, damping_torso;
-    int behaviorStatus;
+    Port emgHumanPort_;
+    std::vector<double> stiffness_arm, stiffness_torso, damping_arm, damping_torso;
+    int behaviorStatus_;
     string robot_name_;
-    robot_interfaces *robot;
-    bool useRightArm;
-    bool useTorso;
-    bool useLeftArm;
+    robot_interfaces *robotInt_;
+    bool useRightArm_;
+    bool useTorso_;
+    bool useLeftArm_;
     
 public:
-    CtrlThread(const double period, string robot_name) : RateThread(int(period*1000.0))
+    CtrlThread(const double period, string robot_name) :
+        RateThread(int(period*1000.0)),
+        robot_name_(robot_name)
     {
-//        // we wanna raise an event each time the arm is at 20%
-//        // of the trajectory (or 80% far from the target)
-//        cartesianEventParameters.type="motion-ongoing";
-//        cartesianEventParameters.motionOngoingCheckPoint=0.2;
-        
-        robot_name_=robot_name;
+
     }
     
     ~CtrlThread()
     {
         yInfo("Disconnecting the robot");
-        delete robot;
+        delete robotInt_;
         
     }
 
@@ -67,12 +70,12 @@ public:
         //open yarp input ports (connection to EMGhuman)
         
         
-        //connect to robot
-        robot = new robot_interfaces();
-        if (robot->init(robot_name_) == false)
+//        //connect to robot
+        robotInt_ = new robot_interfaces();
+        if (robotInt_->init(robot_name_) == false)
         {
              yError("Failed to connect to the robot");
-             delete robot;
+             delete robotInt_;
              return false;
         }
         
@@ -103,7 +106,7 @@ public:
         computeStiffnessAccordingToPolicy();
         
         //set correct values to the robot
-        setRobotBehavior();
+//        setRobotBehavior(arm_stiff, arm_damp, torso_stiff, torso_damp);
 
         //print status on screen
         printStatus();
@@ -126,44 +129,44 @@ public:
     // Follower is zero torque control
     bool beFollower()
     {
-        if(useTorso)
+        if(useTorso_)
         {
-            robot->iimp[TORSO]->setImpedance(0, 0.0, 0.0);
-            robot->iimp[TORSO]->setImpedance(1, 0.0, 0.0);
-            robot->iimp[TORSO]->setImpedance(2, 0.1, 0.0);
-            robot->icmd[TORSO]->setTorqueMode(0);
-            robot->icmd[TORSO]->setTorqueMode(1);
+            robotInt_->iimp[TORSO]->setImpedance(0, 0.0, 0.0);
+            robotInt_->iimp[TORSO]->setImpedance(1, 0.0, 0.0);
+            robotInt_->iimp[TORSO]->setImpedance(2, 0.1, 0.0);
+            robotInt_->icmd[TORSO]->setTorqueMode(0);
+            robotInt_->icmd[TORSO]->setTorqueMode(1);
             //3rd joint of torso is never in torque control (see demoForceControl)
-            robot->icmd[TORSO]->setPositionMode(2);
-            robot->iint[TORSO]->setInteractionMode(2, VOCAB_IM_COMPLIANT);
+            robotInt_->icmd[TORSO]->setPositionMode(2);
+            robotInt_->iint[TORSO]->setInteractionMode(2, VOCAB_IM_COMPLIANT);
         }
         
-        if(useLeftArm)
+        if(useLeftArm_)
         {
-            robot->iimp[LEFT_ARM]->setImpedance(0, 0.0, 0.0);
-            robot->iimp[LEFT_ARM]->setImpedance(1, 0.0, 0.0);
-            robot->iimp[LEFT_ARM]->setImpedance(2, 0.0, 0.0);
-            robot->iimp[LEFT_ARM]->setImpedance(3, 0.0, 0.0);
-            robot->iimp[LEFT_ARM]->setImpedance(4, 0.0, 0.0);
-            robot->icmd[LEFT_ARM]->setTorqueMode(0);
-            robot->icmd[LEFT_ARM]->setTorqueMode(1);
-            robot->icmd[LEFT_ARM]->setTorqueMode(2);
-            robot->icmd[LEFT_ARM]->setTorqueMode(3);
-            robot->icmd[LEFT_ARM]->setTorqueMode(4);
+            robotInt_->iimp[LEFT_ARM]->setImpedance(0, 0.0, 0.0);
+            robotInt_->iimp[LEFT_ARM]->setImpedance(1, 0.0, 0.0);
+            robotInt_->iimp[LEFT_ARM]->setImpedance(2, 0.0, 0.0);
+            robotInt_->iimp[LEFT_ARM]->setImpedance(3, 0.0, 0.0);
+            robotInt_->iimp[LEFT_ARM]->setImpedance(4, 0.0, 0.0);
+            robotInt_->icmd[LEFT_ARM]->setTorqueMode(0);
+            robotInt_->icmd[LEFT_ARM]->setTorqueMode(1);
+            robotInt_->icmd[LEFT_ARM]->setTorqueMode(2);
+            robotInt_->icmd[LEFT_ARM]->setTorqueMode(3);
+            robotInt_->icmd[LEFT_ARM]->setTorqueMode(4);
         }
         
-        if(useRightArm)
+        if(useRightArm_)
         {
-            robot->iimp[RIGHT_ARM]->setImpedance(0, 0.0, 0.0);
-            robot->iimp[RIGHT_ARM]->setImpedance(1, 0.0, 0.0);
-            robot->iimp[RIGHT_ARM]->setImpedance(2, 0.0, 0.0);
-            robot->iimp[RIGHT_ARM]->setImpedance(3, 0.0, 0.0);
-            robot->iimp[RIGHT_ARM]->setImpedance(4, 0.0, 0.0);
-            robot->icmd[RIGHT_ARM]->setTorqueMode(0);
-            robot->icmd[RIGHT_ARM]->setTorqueMode(1);
-            robot->icmd[RIGHT_ARM]->setTorqueMode(2);
-            robot->icmd[RIGHT_ARM]->setTorqueMode(3);
-            robot->icmd[RIGHT_ARM]->setTorqueMode(4);
+            robotInt_->iimp[RIGHT_ARM]->setImpedance(0, 0.0, 0.0);
+            robotInt_->iimp[RIGHT_ARM]->setImpedance(1, 0.0, 0.0);
+            robotInt_->iimp[RIGHT_ARM]->setImpedance(2, 0.0, 0.0);
+            robotInt_->iimp[RIGHT_ARM]->setImpedance(3, 0.0, 0.0);
+            robotInt_->iimp[RIGHT_ARM]->setImpedance(4, 0.0, 0.0);
+            robotInt_->icmd[RIGHT_ARM]->setTorqueMode(0);
+            robotInt_->icmd[RIGHT_ARM]->setTorqueMode(1);
+            robotInt_->icmd[RIGHT_ARM]->setTorqueMode(2);
+            robotInt_->icmd[RIGHT_ARM]->setTorqueMode(3);
+            robotInt_->icmd[RIGHT_ARM]->setTorqueMode(4);
         
         }
         return true;
@@ -178,55 +181,55 @@ public:
     
     bool beLowStiffness()
     {
-        if(useRightArm)
+        if(useRightArm_)
         {
-            robot->iimp[RIGHT_ARM]->setImpedance(0,0.2,0.0);
-            robot->iimp[RIGHT_ARM]->setImpedance(1,0.2,0.0);
-            robot->iimp[RIGHT_ARM]->setImpedance(2,0.2,0.0);
-            robot->iimp[RIGHT_ARM]->setImpedance(3,0.2,0.0);
-            robot->iimp[RIGHT_ARM]->setImpedance(4,0.1,0.0);
-            robot->icmd[RIGHT_ARM]->setPositionMode(0);
-            robot->icmd[RIGHT_ARM]->setPositionMode(1);
-            robot->icmd[RIGHT_ARM]->setPositionMode(2);
-            robot->icmd[RIGHT_ARM]->setPositionMode(3);
-            robot->icmd[RIGHT_ARM]->setPositionMode(4);
-            robot->iint[RIGHT_ARM]->setInteractionMode(0, VOCAB_IM_COMPLIANT);
-            robot->iint[RIGHT_ARM]->setInteractionMode(1, VOCAB_IM_COMPLIANT);
-            robot->iint[RIGHT_ARM]->setInteractionMode(2, VOCAB_IM_COMPLIANT);
-            robot->iint[RIGHT_ARM]->setInteractionMode(3, VOCAB_IM_COMPLIANT);
-            robot->iint[RIGHT_ARM]->setInteractionMode(4, VOCAB_IM_COMPLIANT);
+            robotInt_->iimp[RIGHT_ARM]->setImpedance(0,0.2,0.0);
+            robotInt_->iimp[RIGHT_ARM]->setImpedance(1,0.2,0.0);
+            robotInt_->iimp[RIGHT_ARM]->setImpedance(2,0.2,0.0);
+            robotInt_->iimp[RIGHT_ARM]->setImpedance(3,0.2,0.0);
+            robotInt_->iimp[RIGHT_ARM]->setImpedance(4,0.1,0.0);
+            robotInt_->icmd[RIGHT_ARM]->setPositionMode(0);
+            robotInt_->icmd[RIGHT_ARM]->setPositionMode(1);
+            robotInt_->icmd[RIGHT_ARM]->setPositionMode(2);
+            robotInt_->icmd[RIGHT_ARM]->setPositionMode(3);
+            robotInt_->icmd[RIGHT_ARM]->setPositionMode(4);
+            robotInt_->iint[RIGHT_ARM]->setInteractionMode(0, VOCAB_IM_COMPLIANT);
+            robotInt_->iint[RIGHT_ARM]->setInteractionMode(1, VOCAB_IM_COMPLIANT);
+            robotInt_->iint[RIGHT_ARM]->setInteractionMode(2, VOCAB_IM_COMPLIANT);
+            robotInt_->iint[RIGHT_ARM]->setInteractionMode(3, VOCAB_IM_COMPLIANT);
+            robotInt_->iint[RIGHT_ARM]->setInteractionMode(4, VOCAB_IM_COMPLIANT);
         }
         
-        if(useLeftArm)
+        if(useLeftArm_)
         {
-            robot->iimp[LEFT_ARM]->setImpedance(0,0.2,0.0);
-            robot->iimp[LEFT_ARM]->setImpedance(1,0.2,0.0);
-            robot->iimp[LEFT_ARM]->setImpedance(2,0.2,0.0);
-            robot->iimp[LEFT_ARM]->setImpedance(3,0.2,0.0);
-            robot->iimp[LEFT_ARM]->setImpedance(4,0.1,0.0);
-            robot->icmd[LEFT_ARM]->setPositionMode(0);
-            robot->icmd[LEFT_ARM]->setPositionMode(1);
-            robot->icmd[LEFT_ARM]->setPositionMode(2);
-            robot->icmd[LEFT_ARM]->setPositionMode(3);
-            robot->icmd[LEFT_ARM]->setPositionMode(4);
-            robot->iint[LEFT_ARM]->setInteractionMode(0, VOCAB_IM_COMPLIANT);
-            robot->iint[LEFT_ARM]->setInteractionMode(1, VOCAB_IM_COMPLIANT);
-            robot->iint[LEFT_ARM]->setInteractionMode(2, VOCAB_IM_COMPLIANT);
-            robot->iint[LEFT_ARM]->setInteractionMode(3, VOCAB_IM_COMPLIANT);
-            robot->iint[LEFT_ARM]->setInteractionMode(4, VOCAB_IM_COMPLIANT);
+            robotInt_->iimp[LEFT_ARM]->setImpedance(0,0.2,0.0);
+            robotInt_->iimp[LEFT_ARM]->setImpedance(1,0.2,0.0);
+            robotInt_->iimp[LEFT_ARM]->setImpedance(2,0.2,0.0);
+            robotInt_->iimp[LEFT_ARM]->setImpedance(3,0.2,0.0);
+            robotInt_->iimp[LEFT_ARM]->setImpedance(4,0.1,0.0);
+            robotInt_->icmd[LEFT_ARM]->setPositionMode(0);
+            robotInt_->icmd[LEFT_ARM]->setPositionMode(1);
+            robotInt_->icmd[LEFT_ARM]->setPositionMode(2);
+            robotInt_->icmd[LEFT_ARM]->setPositionMode(3);
+            robotInt_->icmd[LEFT_ARM]->setPositionMode(4);
+            robotInt_->iint[LEFT_ARM]->setInteractionMode(0, VOCAB_IM_COMPLIANT);
+            robotInt_->iint[LEFT_ARM]->setInteractionMode(1, VOCAB_IM_COMPLIANT);
+            robotInt_->iint[LEFT_ARM]->setInteractionMode(2, VOCAB_IM_COMPLIANT);
+            robotInt_->iint[LEFT_ARM]->setInteractionMode(3, VOCAB_IM_COMPLIANT);
+            robotInt_->iint[LEFT_ARM]->setInteractionMode(4, VOCAB_IM_COMPLIANT);
         }
         
-        if(useTorso)
+        if(useTorso_)
         {
-            robot->iimp[TORSO]->setImpedance(0,0.1,0.0);
-            robot->iimp[TORSO]->setImpedance(1,0.1,0.0);
-            robot->iimp[TORSO]->setImpedance(2,0.1,0.0);
-            robot->icmd[TORSO]->setPositionMode(0);
-            robot->icmd[TORSO]->setPositionMode(1);
-            robot->icmd[TORSO]->setPositionMode(2);
-            robot->iint[TORSO]->setInteractionMode(0, VOCAB_IM_COMPLIANT);
-            robot->iint[TORSO]->setInteractionMode(1, VOCAB_IM_COMPLIANT);
-            robot->iint[TORSO]->setInteractionMode(2, VOCAB_IM_COMPLIANT);
+            robotInt_->iimp[TORSO]->setImpedance(0,0.1,0.0);
+            robotInt_->iimp[TORSO]->setImpedance(1,0.1,0.0);
+            robotInt_->iimp[TORSO]->setImpedance(2,0.1,0.0);
+            robotInt_->icmd[TORSO]->setPositionMode(0);
+            robotInt_->icmd[TORSO]->setPositionMode(1);
+            robotInt_->icmd[TORSO]->setPositionMode(2);
+            robotInt_->iint[TORSO]->setInteractionMode(0, VOCAB_IM_COMPLIANT);
+            robotInt_->iint[TORSO]->setInteractionMode(1, VOCAB_IM_COMPLIANT);
+            robotInt_->iint[TORSO]->setInteractionMode(2, VOCAB_IM_COMPLIANT);
         }
         
         return true;
@@ -234,17 +237,17 @@ public:
     
     bool beMediumStiffness()
     {
-        if(useRightArm)
+        if(useRightArm_)
         {
 
         }
         
-        if(useLeftArm)
+        if(useLeftArm_)
         {
 
         }
         
-        if(useTorso)
+        if(useTorso_)
         {
 
         }
@@ -254,17 +257,17 @@ public:
     
     bool beHighStiffness()
     {
-        if(useRightArm)
+        if(useRightArm_)
         {
             
         }
         
-        if(useLeftArm)
+        if(useLeftArm_)
         {
             
         }
         
-        if(useTorso)
+        if(useTorso_)
         {
             
         }
@@ -277,7 +280,7 @@ public:
     {
         readFromEmg();
         computeStiffnessAccordingToPolicy();
-        setRobotBehavior(arm_stiff, arm_damp, torso_stiff, torso_damp);
+//        setRobotBehavior(arm_stiff, arm_damp, torso_stiff, torso_damp);
         
         return true;
     }
@@ -288,7 +291,8 @@ public:
         return true;
     }
     
-    bool setRobotBehavior(Vector arm_stiff, Vector arm_damp, Vector torso_stiff, Vector torso_damp)
+    bool setRobotBehavior(std::vector<double> arm_stiff, std::vector<double> arm_damp,
+                          std::vector<double> torso_stiff, std::vector<double> torso_damp)
     {
 
 
@@ -317,16 +321,11 @@ private:
 
     Port rpc_; // the port to handle messages
     int count_;
-    double rate_;
     
-    Vector stiffness_high_arm, stiffness_high_torso, damping_high_arm, damping_high_torso;
-    Vector stiffness_medium_arm, stiffness_medium_torso, damping_medium_arm, damping_medium_torso;
-    Vector stiffness_low_arm, stiffness_low_torso, damping_low_arm, damping_low_torso;
-    Vector stiffness_follower_arm, stiffness_follower_torso, damping_follower_arm, damping_follower_torso;
-
-    //
-    string name_;
-    std::vector<std::pair<int,int>> iccPairs_;
+    std::vector<double> stiffness_high_arm, stiffness_high_torso, damping_high_arm, damping_high_torso;
+    std::vector<double> stiffness_medium_arm, stiffness_medium_torso, damping_medium_arm, damping_medium_torso;
+    std::vector<double> stiffness_low_arm, stiffness_low_torso, damping_low_arm, damping_low_torso;
+    std::vector<double> stiffness_follower_arm, stiffness_follower_torso, damping_follower_arm, damping_follower_torso;
 
     CtrlThread *controlTh_;
     //
@@ -461,21 +460,28 @@ public:
     {
         Time::turboBoost();
 
+        string name;
+        string robotName;
+        std::vector<std::pair<int,int>> iccPairs;
+        double rate;
+
         if(rf.check("name"))
-            name_    = rf.find("name").asString();
+            name    = rf.find("name").asString();
         else
-            name_    = "EMGhuman2robot";
+            name    = "EMGhuman2robot";
         //....................................................
         
-        readValue(rf,"rate",rate_,0.01); //10 ms is the default rate for the thread
-        readParams(rf,"iccPairs",iccPairs_);
+        readValue(rf,"rate",rate,0.01); //10 ms is the default rate for the thread
+        readParams(rf,"iccPairs",iccPairs);
+        readValue(rf, "robot",robotName,"icubSim");
 
         cout<<"Parameters from init file: "<<endl;
-        DSCPA(name_);
-        DSCPA(rate_);
-        DSCPAstdvecpair(iccPairs_);
+        DSCPA(name);
+        DSCPA(rate);
+        DSCPA(robotName)
+        DSCPAstdvecpair(iccPairs);
        
-        controlTh_ = new CtrlThread(rate_);
+        controlTh_ = new CtrlThread(rate, robotName);
         if(!controlTh_->start())
         {
             yError("EMGhuman2robot: cannot start the control thread. Aborting.");
@@ -486,7 +492,7 @@ public:
         //attach a port to the module, so we can send messages
         //and choose the type of grasp to execute
         //messages received from the port are redirected to the respond method
-        rpc_.open(string("/"+name_+"/rpc:i").c_str());
+        rpc_.open(string("/"+name+"/rpc:i").c_str());
         attach(rpc_);
 
         return true;

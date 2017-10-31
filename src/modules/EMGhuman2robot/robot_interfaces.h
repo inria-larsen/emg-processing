@@ -20,6 +20,7 @@
 
 #include <yarp/dev/all.h>
 #include <yarp/dev/ControlBoardInterfaces.h>
+
 #include <string>
 
 #define LEFT_ARM  0
