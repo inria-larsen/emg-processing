@@ -26,10 +26,11 @@ using namespace yarp::sig;
 using namespace yarp::dev;
 using namespace EmgUtils;
 
-#define POLICY_DIRECT 0
-#define POLICY_DIRECT_3_STATES 1
-#define POLICY_INVERSE 2
-#define POLICY_MANUAL 3
+#define POLICY_DIRECT               0
+#define POLICY_DIRECT_3_STATES      1
+#define POLICY_INVERSE              2
+#define POLICY_INVERSE_3_STATES     3
+#define POLICY_MANUAL               4
 
 
 //=====================================
@@ -42,19 +43,46 @@ protected:
     
     Port emgHumanPort_;
     std::vector<double> stiffness_arm, stiffness_torso, damping_arm, damping_torso;
-    int behaviorStatus_;
     string robot_name_;
     robot_interfaces *robotInt_;
     bool useRightArm_;
     bool useTorso_;
     bool useLeftArm_;
+    int policy_;
+
+    double iccForearm_;
+    double iccLowZero_,iccLowMax_,iccMedMax_,iccHighMax_;
     
 public:
-    CtrlThread(const double period, string robot_name) :
+    CtrlThread(const double period, string robot_name, const string policy,
+               double iccLowZero,double iccLowMax,double iccMedMax,double iccHighMax,
+               bool useLeft, bool useRight, bool useTorso) :
         RateThread(int(period*1000.0)),
-        robot_name_(robot_name)
-    {
+        robot_name_(robot_name),
+        iccLowZero_(iccLowZero),
+        iccLowMax_(iccLowMax),
+        iccMedMax_(iccMedMax),
+        iccHighMax_(iccHighMax),
+        useLeftArm_(useLeft),
+        useRightArm_(useRight),
+        useTorso_(useTorso)
 
+    {
+        if(policy.compare("direct")){
+            policy_ = POLICY_DIRECT;
+        }
+        else if(policy.compare("direct_three_states")){
+            policy_ = POLICY_DIRECT_3_STATES;
+        }
+        else if(policy.compare("direct_inverse")){
+            policy_ = POLICY_INVERSE;
+        }
+        else if(policy.compare("inverse_three_states")){
+            policy_ = POLICY_INVERSE_3_STATES;
+        }
+        else if(policy.compare("manual")){
+            policy_ = POLICY_MANUAL;
+        }
     }
     
     ~CtrlThread()
@@ -84,11 +112,6 @@ public:
 
     }
 
-    virtual void afterStart(bool s)
-    {
-
-    }
-    
     bool readFromEmg()
     {
         
@@ -102,11 +125,14 @@ public:
         // read from port
         readFromEmg();
 
-        //depending on compliance strategy, compute values
-        computeStiffnessAccordingToPolicy();
-        
-        //set correct values to the robot
-//        setRobotBehavior(arm_stiff, arm_damp, torso_stiff, torso_damp);
+        //only reset impedance in the control loop if the policy is adaptive
+        if(policy_ != POLICY_MANUAL)
+        {
+            //Compute impedance depending on policy
+            if( !setAdaptiveImpedance() ){
+                yError("Could not set adaptive impedance");
+            }
+        }
 
         //print status on screen
         printStatus();
@@ -127,7 +153,7 @@ public:
     }
     
     // Follower is zero torque control
-    bool beFollower()
+    bool setFollower()
     {
         if(useTorso_)
         {
@@ -173,13 +199,13 @@ public:
     }
     
     // Leader is high stiffness
-    bool beLeader()
+    bool setLeader()
     {
         
         return true;
     }
     
-    bool beLowStiffness()
+    bool setLowStiffness()
     {
         if(useRightArm_)
         {
@@ -235,7 +261,7 @@ public:
         return true;
     }
     
-    bool beMediumStiffness()
+    bool setMediumStiffness()
     {
         if(useRightArm_)
         {
@@ -255,7 +281,7 @@ public:
         return true;
     }
     
-    bool beHighStiffness()
+    bool setHighStiffness()
     {
         if(useRightArm_)
         {
@@ -275,34 +301,62 @@ public:
         return true;
     }
     
-    // Adaptive Behavior depends on the policy
-    bool beAdaptive()
+    
+    bool setAdaptiveImpedance()
     {
-        readFromEmg();
-        computeStiffnessAccordingToPolicy();
-//        setRobotBehavior(arm_stiff, arm_damp, torso_stiff, torso_damp);
-        
+        switch (policy_) {
+        case POLICY_DIRECT:
+            yWarning("linear DIRECT policy not implemented yet");
+            break;
+        case POLICY_DIRECT_3_STATES:
+
+            yInfo("Setting DIRECT 3 STATES policy");
+            if(iccForearm_ <= iccLowMax_){
+                setLowStiffness();
+            }
+            else if(iccForearm_ <= iccMedMax_ && iccForearm_ > iccLowMax_){
+                setMediumStiffness();
+            }
+            else if(iccForearm_ <= iccHighMax_ && iccForearm_ > iccMedMax_){
+                setHighStiffness();
+            }
+
+            break;
+        case POLICY_INVERSE:
+            yWarning("linear INVERSE policy not implemented yet");
+            break;
+        case POLICY_INVERSE_3_STATES:
+
+            yInfo("Setting INVERSE 3 STATES policy");
+            if(iccForearm_ <= iccLowMax_){
+                setHighStiffness();
+            }
+            else if(iccForearm_ <= iccMedMax_ && iccForearm_ > iccLowMax_){
+                setMediumStiffness();
+            }
+            else if(iccForearm_ <= iccHighMax_ && iccForearm_ > iccMedMax_){
+                setLowStiffness();
+            }
+
+            break;
+        default:
+            yError("Policy was not set properly.");
+            return false;
+            break;
+        }
         return true;
     }
     
-    bool computeStiffnessAccordingToPolicy()
-    {
-        
-        return true;
-    }
-    
-    bool setRobotBehavior(std::vector<double> arm_stiff, std::vector<double> arm_damp,
+    bool setRobotImpedance(std::vector<double> arm_stiff, std::vector<double> arm_damp,
                           std::vector<double> torso_stiff, std::vector<double> torso_damp)
     {
 
-
-        
         return true;
     }
     
-    bool changeAdaptivePolicy()
+    bool setPolicy(const int policy)
     {
-        
+        policy_ = policy;
         return true;
     }
     
@@ -464,6 +518,9 @@ public:
         string robotName;
         std::vector<std::pair<int,int>> iccPairs;
         double rate;
+        std::string policy;
+        double iccLowZero,iccLowMax,iccMedMax,iccHighMax;
+        bool useLeft, useRight, useTorso;
 
         if(rf.check("name"))
             name    = rf.find("name").asString();
@@ -474,6 +531,14 @@ public:
         readValue(rf,"rate",rate,0.01); //10 ms is the default rate for the thread
         readParams(rf,"iccPairs",iccPairs);
         readValue(rf, "robot",robotName,"icubSim");
+        readValue(rf, "policy",policy,"direct");
+        readValue(rf,"iccLowZero",iccLowZero,0.01);
+        readValue(rf,"iccLowMax",iccLowMax,0.1);
+        readValue(rf,"iccMediumMax",iccMedMax,0.4);
+        readValue(rf,"iccHighMax",iccHighMax,1.0);
+        readValue(rf,"useLeftArm",useLeft,false);
+        readValue(rf,"useRightArm",useRight,true);
+        readValue(rf,"useTorso",useTorso,true);
 
         cout<<"Parameters from init file: "<<endl;
         DSCPA(name);
@@ -481,7 +546,7 @@ public:
         DSCPA(robotName)
         DSCPAstdvecpair(iccPairs);
        
-        controlTh_ = new CtrlThread(rate, robotName);
+        controlTh_ = new CtrlThread(rate, robotName,policy,iccLowZero,iccLowMax,iccMedMax,iccHighMax,useLeft,useRight,useTorso);
         if(!controlTh_->start())
         {
             yError("EMGhuman2robot: cannot start the control thread. Aborting.");
