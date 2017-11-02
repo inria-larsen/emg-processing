@@ -33,6 +33,10 @@ using namespace EmgUtils;
 #define POLICY_MANUAL               4
 
 
+#define STATUS_STOPPED 10
+#define STATUS_RUNNING 20
+
+
 //=====================================
 //        EMGhuman2robot control thread
 //=====================================
@@ -49,6 +53,7 @@ protected:
     bool useTorso_;
     bool useLeftArm_;
     int policy_;
+    int status_;
 
     double iccForearm_;
     double iccLowZero_,iccLowMax_,iccMedMax_,iccHighMax_;
@@ -83,6 +88,8 @@ public:
         else if(policy.compare("manual")){
             policy_ = POLICY_MANUAL;
         }
+
+        status_=STATUS_STOPPED;
     }
     
     ~CtrlThread()
@@ -94,11 +101,13 @@ public:
 
     virtual bool threadInit()
     {
+        // we start as stopped without controlling the robot
+        status_=STATUS_STOPPED;
 
         //open yarp input ports (connection to EMGhuman)
         
-        
-//        //connect to robot
+        yInfo("Connecting to the robot");
+        //connect to robot
         robotInt_ = new robot_interfaces();
         if (robotInt_->init(robot_name_) == false)
         {
@@ -123,24 +132,32 @@ public:
 
         //read icc values from EMGhuman module
         // read from port
+        // note: we read even if we don't control the robot
         readFromEmg();
 
-        //only reset impedance in the control loop if the policy is adaptive
-        if(policy_ != POLICY_MANUAL)
+        // we only control the robot if we decided that explicitly
+        if(status_==STATUS_RUNNING)
         {
-            //Compute impedance depending on policy
-            if( !setAdaptiveImpedance() ){
-                yError("Could not set adaptive impedance");
+            //only reset impedance in the control loop if the policy is adaptive
+            if(policy_ != POLICY_MANUAL)
+            {
+                //Compute impedance depending on policy
+                if( !setAdaptiveImpedance() ){
+                    yError("Could not set adaptive impedance");
+                }
             }
         }
 
-        //print status on screen
-        printStatus();
+        
+
+
 
     }
     
     virtual void threadRelease()
     {
+        status_=STATUS_STOPPED;
+
         //close all yarp ports
     }
 
@@ -149,6 +166,19 @@ public:
      */
     void printStatus()
     {
+        yInfo("EMG_human2robot: status");
+        switch(policy)
+        {
+            case POLICY_DIRECT: yInfo(" ** Policy: direct"); break;
+            case POLICY_DIRECT_3_STATES: yInfo(" ** Policy: direct 3 states (low/medium/high stiffness"); break;
+            case POLICY_INVERSE: yInfo(" ** Policy: inverse"); break;
+            case POLICY_INVERSE_3_STATES: yInfo(" ** Policy: inverse 3 states (high/medium/low stiffness"); break;
+            case POLICY_MANUAL: yInfo(" ** Policy: manual"); break;
+            default:
+                yInfo(" ** Policy: NOT SET and we don't know why"); break;
+        }
+
+
 
     }
     
@@ -201,10 +231,10 @@ public:
     // Leader is high stiffness
     bool setLeader()
     {
-        
-        return true;
+        return setHighStiffness();
     }
     
+    // Hard-coded values come from demoForceControl -> soft Impedance
     bool setLowStiffness()
     {
         if(useRightArm_)
@@ -261,47 +291,121 @@ public:
         return true;
     }
     
+    // Hard-coded values come from demoForceControl -> medium Impedance
     bool setMediumStiffness()
     {
         if(useRightArm_)
         {
-
+            robotInt_->iimp[RIGHT_ARM]->setImpedance(0,0.4,0.03);
+            robotInt_->iimp[RIGHT_ARM]->setImpedance(1,0.4,0.03);
+            robotInt_->iimp[RIGHT_ARM]->setImpedance(2,0.4,0.03);
+            robotInt_->iimp[RIGHT_ARM]->setImpedance(3,0.2,0.01);
+            robotInt_->iimp[RIGHT_ARM]->setImpedance(4,0.2,0.0);
+            robotInt_->icmd[RIGHT_ARM]->setPositionMode(0);
+            robotInt_->icmd[RIGHT_ARM]->setPositionMode(1);
+            robotInt_->icmd[RIGHT_ARM]->setPositionMode(2);
+            robotInt_->icmd[RIGHT_ARM]->setPositionMode(3);
+            robotInt_->icmd[RIGHT_ARM]->setPositionMode(4);
+            robotInt_->iint[RIGHT_ARM]->setInteractionMode(0, VOCAB_IM_COMPLIANT);
+            robotInt_->iint[RIGHT_ARM]->setInteractionMode(1, VOCAB_IM_COMPLIANT);
+            robotInt_->iint[RIGHT_ARM]->setInteractionMode(2, VOCAB_IM_COMPLIANT);
+            robotInt_->iint[RIGHT_ARM]->setInteractionMode(3, VOCAB_IM_COMPLIANT);
+            robotInt_->iint[RIGHT_ARM]->setInteractionMode(4, VOCAB_IM_COMPLIANT);
         }
         
         if(useLeftArm_)
         {
-
+            robotInt_->iimp[LEFT_ARM]->setImpedance(0,0.4,0.03);
+            robotInt_->iimp[LEFT_ARM]->setImpedance(1,0.4,0.03);
+            robotInt_->iimp[LEFT_ARM]->setImpedance(2,0.4,0.03);
+            robotInt_->iimp[LEFT_ARM]->setImpedance(3,0.2,0.01);
+            robotInt_->iimp[LEFT_ARM]->setImpedance(4,0.2,0.0);
+            robotInt_->icmd[LEFT_ARM]->setPositionMode(0);
+            robotInt_->icmd[LEFT_ARM]->setPositionMode(1);
+            robotInt_->icmd[LEFT_ARM]->setPositionMode(2);
+            robotInt_->icmd[LEFT_ARM]->setPositionMode(3);
+            robotInt_->icmd[LEFT_ARM]->setPositionMode(4);
+            robotInt_->iint[LEFT_ARM]->setInteractionMode(0, VOCAB_IM_COMPLIANT);
+            robotInt_->iint[LEFT_ARM]->setInteractionMode(1, VOCAB_IM_COMPLIANT);
+            robotInt_->iint[LEFT_ARM]->setInteractionMode(2, VOCAB_IM_COMPLIANT);
+            robotInt_->iint[LEFT_ARM]->setInteractionMode(3, VOCAB_IM_COMPLIANT);
+            robotInt_->iint[LEFT_ARM]->setInteractionMode(4, VOCAB_IM_COMPLIANT);
         }
         
         if(useTorso_)
         {
-
+            robotInt_->iimp[TORSO]->setImpedance(0,0.3,0.0);
+            robotInt_->iimp[TORSO]->setImpedance(1,0.3,0.0);
+            robotInt_->iimp[TORSO]->setImpedance(2,0.3,0.0);
+            robotInt_->icmd[TORSO]->setPositionMode(0);
+            robotInt_->icmd[TORSO]->setPositionMode(1);
+            robotInt_->icmd[TORSO]->setPositionMode(2);
+            robotInt_->iint[TORSO]->setInteractionMode(0, VOCAB_IM_COMPLIANT);
+            robotInt_->iint[TORSO]->setInteractionMode(1, VOCAB_IM_COMPLIANT);
+            robotInt_->iint[TORSO]->setInteractionMode(2, VOCAB_IM_COMPLIANT);
         }
         
         return true;
     }
     
+    // Hard-coded values come from demoForceControl -> hard Impedance
     bool setHighStiffness()
     {
         if(useRightArm_)
         {
-            
+            robotInt_->iimp[RIGHT_ARM]->setImpedance(0,0.6,0.06);
+            robotInt_->iimp[RIGHT_ARM]->setImpedance(1,0.6,0.06);
+            robotInt_->iimp[RIGHT_ARM]->setImpedance(2,0.6,0.06);
+            robotInt_->iimp[RIGHT_ARM]->setImpedance(3,0.3,0.02);
+            robotInt_->iimp[RIGHT_ARM]->setImpedance(4,0.3,0.0);
+            robotInt_->icmd[RIGHT_ARM]->setPositionMode(0);
+            robotInt_->icmd[RIGHT_ARM]->setPositionMode(1);
+            robotInt_->icmd[RIGHT_ARM]->setPositionMode(2);
+            robotInt_->icmd[RIGHT_ARM]->setPositionMode(3);
+            robotInt_->icmd[RIGHT_ARM]->setPositionMode(4);
+            robotInt_->iint[RIGHT_ARM]->setInteractionMode(0, VOCAB_IM_COMPLIANT);
+            robotInt_->iint[RIGHT_ARM]->setInteractionMode(1, VOCAB_IM_COMPLIANT);
+            robotInt_->iint[RIGHT_ARM]->setInteractionMode(2, VOCAB_IM_COMPLIANT);
+            robotInt_->iint[RIGHT_ARM]->setInteractionMode(3, VOCAB_IM_COMPLIANT);
+            robotInt_->iint[RIGHT_ARM]->setInteractionMode(4, VOCAB_IM_COMPLIANT);
         }
         
         if(useLeftArm_)
         {
-            
+            robotInt_->iimp[LEFT_ARM]->setImpedance(0,0.6,0.06);
+            robotInt_->iimp[LEFT_ARM]->setImpedance(1,0.6,0.06);
+            robotInt_->iimp[LEFT_ARM]->setImpedance(2,0.6,0.06);
+            robotInt_->iimp[LEFT_ARM]->setImpedance(3,0.3,0.02);
+            robotInt_->iimp[LEFT_ARM]->setImpedance(4,0.2,0.0);
+            robotInt_->icmd[LEFT_ARM]->setPositionMode(0);
+            robotInt_->icmd[LEFT_ARM]->setPositionMode(1);
+            robotInt_->icmd[LEFT_ARM]->setPositionMode(2);
+            robotInt_->icmd[LEFT_ARM]->setPositionMode(3);
+            robotInt_->icmd[LEFT_ARM]->setPositionMode(4);
+            robotInt_->iint[LEFT_ARM]->setInteractionMode(0, VOCAB_IM_COMPLIANT);
+            robotInt_->iint[LEFT_ARM]->setInteractionMode(1, VOCAB_IM_COMPLIANT);
+            robotInt_->iint[LEFT_ARM]->setInteractionMode(2, VOCAB_IM_COMPLIANT);
+            robotInt_->iint[LEFT_ARM]->setInteractionMode(3, VOCAB_IM_COMPLIANT);
+            robotInt_->iint[LEFT_ARM]->setInteractionMode(4, VOCAB_IM_COMPLIANT);
         }
         
         if(useTorso_)
         {
-            
+            robotInt_->iimp[TORSO]->setImpedance(0,0.7,0.015);
+            robotInt_->iimp[TORSO]->setImpedance(1,0.7,0.015);
+            robotInt_->iimp[TORSO]->setImpedance(2,0.7,0.015);
+            robotInt_->icmd[TORSO]->setPositionMode(0);
+            robotInt_->icmd[TORSO]->setPositionMode(1);
+            robotInt_->icmd[TORSO]->setPositionMode(2);
+            robotInt_->iint[TORSO]->setInteractionMode(0, VOCAB_IM_COMPLIANT);
+            robotInt_->iint[TORSO]->setInteractionMode(1, VOCAB_IM_COMPLIANT);
+            robotInt_->iint[TORSO]->setInteractionMode(2, VOCAB_IM_COMPLIANT);
         }
         
         return true;
     }
     
-    
+    // Policies for adaptive impedance
     bool setAdaptiveImpedance()
     {
         switch (policy_) {
@@ -312,13 +416,13 @@ public:
 
             yInfo("Setting DIRECT 3 STATES policy");
             if(iccForearm_ <= iccLowMax_){
-                setLowStiffness();
+                return setLowStiffness();
             }
             else if(iccForearm_ <= iccMedMax_ && iccForearm_ > iccLowMax_){
-                setMediumStiffness();
+                return setMediumStiffness();
             }
             else if(iccForearm_ <= iccHighMax_ && iccForearm_ > iccMedMax_){
-                setHighStiffness();
+                return setHighStiffness();
             }
 
             break;
@@ -329,13 +433,13 @@ public:
 
             yInfo("Setting INVERSE 3 STATES policy");
             if(iccForearm_ <= iccLowMax_){
-                setHighStiffness();
+                return setHighStiffness();
             }
             else if(iccForearm_ <= iccMedMax_ && iccForearm_ > iccLowMax_){
-                setMediumStiffness();
+                return setMediumStiffness();
             }
             else if(iccForearm_ <= iccHighMax_ && iccForearm_ > iccMedMax_){
-                setLowStiffness();
+                return setLowStiffness();
             }
 
             break;
@@ -351,12 +455,44 @@ public:
                           std::vector<double> torso_stiff, std::vector<double> torso_damp)
     {
 
+        // TODO
+
         return true;
     }
     
     bool setPolicy(const int policy)
     {
         policy_ = policy;
+        return true;
+    }
+
+    int getPolicy() const
+    {
+        return policy_;
+    }
+
+    int getStatus() const
+    {
+        return status_;
+    }
+
+    bool startControllingRobot()
+    {
+        if(status_==STATUS_RUNNING)
+            yWarning("Hey I am already controlling the robot ...");
+        else
+            yInfo("Starting to control the robot...");
+        status_=STATUS_RUNNING;
+        return true;
+    }
+
+    bool stopControllingRobot()
+    {
+        if(status_==STATUS_RUNNING)
+            yInfo("Stopping controlling the robot...");
+        else
+            yWarning("Hey I am not controlling the robot ...");
+        status_=STATUS_STOPPED;
         return true;
     }
     
