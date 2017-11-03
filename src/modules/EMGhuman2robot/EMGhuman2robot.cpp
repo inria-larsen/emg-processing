@@ -45,7 +45,10 @@ class CtrlThread: public RateThread
 {
 protected:
     
-    Port emgHumanPort_;
+    Bottle *inIcc_;
+    BufferedPort<Bottle> iccInputPort_;
+
+
     std::vector<double> stiffness_arm, stiffness_torso, damping_arm, damping_torso;
     string robot_name_;
     robot_interfaces *robotInt_;
@@ -54,6 +57,7 @@ protected:
     bool useLeftArm_;
     int policy_;
     int status_;
+    std::string name_;
 
     double iccForearm_;
     double iccLowZero_,iccLowMax_,iccMedMax_,iccHighMax_;
@@ -61,7 +65,7 @@ protected:
 public:
     CtrlThread(const double period, string robot_name, const string policy,
                double iccLowZero,double iccLowMax,double iccMedMax,double iccHighMax,
-               bool useLeft, bool useRight, bool useTorso) :
+               bool useLeft, bool useRight, bool useTorso, string name) :
         RateThread(int(period*1000.0)),
         robot_name_(robot_name),
         iccLowZero_(iccLowZero),
@@ -70,22 +74,23 @@ public:
         iccHighMax_(iccHighMax),
         useLeftArm_(useLeft),
         useRightArm_(useRight),
-        useTorso_(useTorso)
+        useTorso_(useTorso),
+        name_(name)
 
     {
-        if(policy.compare("direct")){
+        if(policy == "direct"){
             policy_ = POLICY_DIRECT;
         }
-        else if(policy.compare("direct_three_states")){
+        else if(policy == "direct_three_states"){
             policy_ = POLICY_DIRECT_3_STATES;
         }
-        else if(policy.compare("direct_inverse")){
+        else if(policy  == "direct_inverse"){
             policy_ = POLICY_INVERSE;
         }
-        else if(policy.compare("inverse_three_states")){
+        else if(policy == "inverse_three_states"){
             policy_ = POLICY_INVERSE_3_STATES;
         }
-        else if(policy.compare("manual")){
+        else if(policy == "manual"){
             policy_ = POLICY_MANUAL;
         }
 
@@ -105,6 +110,9 @@ public:
         status_=STATUS_STOPPED;
 
         //open yarp input ports (connection to EMGhuman)
+
+//        outPortStiffness.open(string("/"+name+"/stiffness_arm:o").c_str());
+        iccInputPort_.open(string("/"+name_+"/icc:i").c_str());
         
         yInfo("Connecting to the robot");
         //connect to robot
@@ -123,7 +131,14 @@ public:
 
     bool readFromEmg()
     {
-        
+        //write to bottle
+
+        inIcc_ = iccInputPort_.read();
+
+        if (inIcc_!=NULL) {
+            cout << "[INFO] [ICC]: " << inIcc_->toString().c_str() << endl;
+        }
+        //write to iccForearm_
         return true;
     }
 
@@ -159,6 +174,9 @@ public:
         status_=STATUS_STOPPED;
 
         //close all yarp ports
+
+        iccInputPort_.interrupt();
+        iccInputPort_.close();
     }
 
     /**
@@ -167,12 +185,12 @@ public:
     void printStatus()
     {
         yInfo("EMG_human2robot: status");
-        switch(policy)
+        switch(policy_)
         {
             case POLICY_DIRECT: yInfo(" ** Policy: direct"); break;
-            case POLICY_DIRECT_3_STATES: yInfo(" ** Policy: direct 3 states (low/medium/high stiffness"); break;
+            case POLICY_DIRECT_3_STATES: yInfo(" ** Policy: direct 3 states (low/medium/high stiffness)"); break;
             case POLICY_INVERSE: yInfo(" ** Policy: inverse"); break;
-            case POLICY_INVERSE_3_STATES: yInfo(" ** Policy: inverse 3 states (high/medium/low stiffness"); break;
+            case POLICY_INVERSE_3_STATES: yInfo(" ** Policy: inverse 3 states (high/medium/low stiffness)"); break;
             case POLICY_MANUAL: yInfo(" ** Policy: manual"); break;
             default:
                 yInfo(" ** Policy: NOT SET and we don't know why"); break;
@@ -559,23 +577,51 @@ public:
         }  
         else if(cmd=="stop")
         {
-            
+            controlTh_->stopControllingRobot();
+            reply.clear();
+            reply.addString("stop: OK");
+            cout<<"[DEBUG] " << reply.toString()<<endl;
+            return true;
         }
         else if(cmd=="start")
         {
-
+            controlTh_->startControllingRobot();
+            reply.clear();
+            reply.addString("start: OK");
+            cout<<"[DEBUG] " << reply.toString()<<endl;
+            return true;
         } 
         else if(cmd=="status")
         {
+            int status = controlTh_->getStatus();
 
+            reply.clear();
+            reply.addString("STATUS: ");
+            reply.addInt(status);
+            cout<<"[DEBUG] " << reply.toString()<<endl;
+
+            controlTh_->printStatus();
+            return true;
         }
         else if(cmd=="leader_behavior")
         {
-            
+            controlTh_->setLeader();
+
+            reply.clear();
+            reply.addString("leader: OK ");
+
+            cout<<"[DEBUG] " << reply.toString()<<endl;
+            return true;
         }
         else if(cmd=="follower_behavior")
         {
-            
+            controlTh_->setFollower();
+
+            reply.clear();
+            reply.addString("follower: OK ");
+
+            cout<<"[DEBUG] " << reply.toString()<<endl;
+            return true;
         }
         else if(cmd=="mixed_behavior")
         {
@@ -583,25 +629,37 @@ public:
             cout<<"second command = "<<config<<endl;
             if(config=="direct_linear")
             {
-                
+                controlTh_->setPolicy(POLICY_DIRECT);
+                reply.clear();
+                reply.addString("DIRECT LINEAR: OK ");
             }
             if(config=="inverse_linear")
             {
-                
+                controlTh_->setPolicy(POLICY_INVERSE);
+                reply.clear();
+                reply.addString("INVERSE LINEAR: OK ");
             }
             if(config=="direct_3classes")
             {
-                
+                controlTh_->setPolicy(POLICY_DIRECT_3_STATES);
+                reply.clear();
+                reply.addString("DIRECT 3 STATES: OK ");
             }
             if(config=="inverse_3classes")
             {
-                
+                controlTh_->setPolicy(POLICY_INVERSE_3_STATES);
+                reply.clear();
+                reply.addString("INVERSE 3 STATES: OK ");
             }
             else
             {
-                
+                reply.clear();
+                reply.addString("COMMAND INVALID");
+                yError(" This is not a valid policy option");
             }
-            
+
+            cout<<"[DEBUG] " << reply.toString()<<endl;
+            return true;
         }
         else if(cmd=="filtering")
         {
@@ -620,7 +678,7 @@ public:
             {
 
             }
-
+            return true;
         }
         else
         {
@@ -639,9 +697,6 @@ public:
         //reply = command;
         return true;
     }
-
-
-
 
 
 
@@ -681,8 +736,16 @@ public:
         DSCPA(rate);
         DSCPA(robotName)
         DSCPAstdvecpair(iccPairs);
+        DSCPA(policy);
+        DSCPA(iccLowZero);
+        DSCPA(iccLowMax);
+        DSCPA(iccMedMax);
+        DSCPA(iccHighMax);
+        DSCPA(useLeft);
+        DSCPA(useRight);
+        DSCPA(useTorso);
        
-        controlTh_ = new CtrlThread(rate, robotName,policy,iccLowZero,iccLowMax,iccMedMax,iccHighMax,useLeft,useRight,useTorso);
+        controlTh_ = new CtrlThread(rate, robotName,policy,iccLowZero,iccLowMax,iccMedMax,iccHighMax,useLeft,useRight,useTorso,name);
         if(!controlTh_->start())
         {
             yError("EMGhuman2robot: cannot start the control thread. Aborting.");

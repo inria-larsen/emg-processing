@@ -107,7 +107,18 @@
                                                             <from>/emGui/col/rpc</from>
                                                             <to>/human_collaborator/rpc</to>
                                                             <protocol>tcp</protocol>
-                                                      </connection>                                                                                                             
+                                                      </connection>
+
+                                                      <connection>
+                                                            <from>/emGui/op2robot/rpc</from>
+                                                            <to>/emg2robot/operator/rpc:i</to>
+                                                            <protocol>tcp</protocol>
+                                                      </connection>
+                                                      <connection>
+                                                            <from>/emGui/col2robot/rpc</from>
+                                                            <to>/emg2robot/collaborator/rpc:i</to>
+                                                            <protocol>tcp</protocol>
+                                                      </connection>                                                                                                           
 
     <connection>
           <from>/emg/onset:o</from>

@@ -22,7 +22,7 @@ Item {
 
 
     ColumnLayout {
-        id: columnRight
+        id: columnleft
         x: 160
         y:100
         width: 640
@@ -46,20 +46,21 @@ Item {
         }
         Button {
             id:b20
-            text: "Start Robot Impedance Adaptation"
+            text: "Start Robot Impedance Control"
             Layout.alignment: Qt.AlignCenter
             Layout.preferredWidth: 200
             onClicked: {
-                console.log(emgUi.sendOp2RobotRPC("start"));
+                console.log(emgUi.sendCol2RobotRPC("start"));
             }
         }
         Button {
             id:b21
-            text: "Stop Robot Impedance Adaptation"
+            height: 25
+            text: "Stop Robot Impedance Contrl"
             Layout.alignment: Qt.AlignCenter
             Layout.preferredWidth: 200
             onClicked: {
-                console.log(emgUi.sendOp2RobotRPC("stop"));
+                console.log(emgUi.sendCol2RobotRPC("stop"));
             }
         }
         Button {
@@ -68,7 +69,7 @@ Item {
             Layout.preferredWidth: 200
             Layout.alignment: Qt.AlignCenter
             onClicked: {
-                console.log(emgUi.sendOp2RobotRPC("leader_behavior"));
+                console.log(emgUi.sendCol2RobotRPC("leader_behavior"));
             }
         }
         Button {
@@ -77,7 +78,16 @@ Item {
             Layout.preferredWidth: 200
             Layout.alignment: Qt.AlignCenter
             onClicked: {
-                console.log(emgUi.sendOp2RobotRPC("follower_behavior"));
+                console.log(emgUi.sendCol2RobotRPC("follower_behavior"));
+            }
+        }
+        Button {
+            id:b30
+            text: "STATUS"
+            Layout.preferredWidth: 200
+            Layout.alignment: Qt.AlignCenter
+            onClicked: {
+                console.log(emgUi.sendCol2RobotRPC("status"));
             }
         }
         Button {
@@ -85,35 +95,43 @@ Item {
             text: "DIRECT / 3 STATES"
             Layout.preferredWidth: 200
             Layout.alignment: Qt.AlignCenter
+
+            onClicked: {
+                console.log(emgUi.sendCol2RobotRPC("mixed_behavior direct_3classes"));
+            }
         }
         Button {
             id:b8
             text: "INVERSE / 3 STATES"
             Layout.preferredWidth: 200
             Layout.alignment: Qt.AlignCenter
+
+            onClicked: {
+                console.log(emgUi.sendCol2RobotRPC("mixed_behavior inverse_3classes"));
+            }
         }
-        Button {
-            id:b9
-            text: "SET LOW STIFFNESS"
-            Layout.preferredWidth: 200
-            Layout.alignment: Qt.AlignCenter
-        }
-        Button {
-            id:b10
-            text: "SET MID STIFFNESS"
-            Layout.preferredWidth: 200
-            Layout.alignment: Qt.AlignCenter
-        }
-        Button {
-            id:b11
-            text: "SET HIGH STIFFNESS"
-            Layout.preferredWidth: 200
-            Layout.alignment: Qt.AlignCenter
-        }
+//        Button {
+//            id:b9
+//            text: "SET LOW STIFFNESS"
+//            Layout.preferredWidth: 200
+//            Layout.alignment: Qt.AlignCenter
+//        }
+//        Button {
+//            id:b10
+//            text: "SET MID STIFFNESS"
+//            Layout.preferredWidth: 200
+//            Layout.alignment: Qt.AlignCenter
+//        }
+//        Button {
+//            id:b11
+//            text: "SET HIGH STIFFNESS"
+//            Layout.preferredWidth: 200
+//            Layout.alignment: Qt.AlignCenter
+//        }
     }
 
     ColumnLayout {
-        id: columnleft
+        id: columnRight
         x: 1920/2 + 160
         y:100
         //        anchors.left: parent.left
@@ -124,55 +142,87 @@ Item {
 
         Button {
             id:b2
-            text: "Start Streaming"
-            Layout.preferredWidth: 200
             Layout.alignment: Qt.AlignCenter
+            Layout.preferredWidth: 200
+            onClicked: {
+                console.log(emgUi.sendOp2RobotRPC("start"));
+            }
+        }
+        Button {
+            height: 25
+            text: "Stop Robot Impedance Contrl"
+            Layout.alignment: Qt.AlignCenter
+            Layout.preferredWidth: 200
+            onClicked: {
+                console.log(emgUi.sendOp2RobotRPC("stop"));
+            }
         }
         Button {
             id:b12
             text: "LEADER"
             Layout.preferredWidth: 200
             Layout.alignment: Qt.AlignCenter
+            onClicked: {
+                console.log(emgUi.sendOp2RobotRPC("leader_behavior"));
+            }
         }
         Button {
             id:b13
             text: "FOLLOWER"
             Layout.preferredWidth: 200
             Layout.alignment: Qt.AlignCenter
+            onClicked: {
+                console.log(emgUi.sendOp2RobotRPC("follower_behavior"));
+            }
         }
         Button {
             id:b14
             text: "DIRECT / 3 STATES"
             Layout.preferredWidth: 200
             Layout.alignment: Qt.AlignCenter
+            onClicked: {
+                console.log(emgUi.sendOp2RobotRPC("mixed_behavior direct_3classes"));
+            }
         }
         Button {
             id:b15
             text: "INVERSE / 3 STATES"
             Layout.preferredWidth: 200
             Layout.alignment: Qt.AlignCenter
+            onClicked: {
+                console.log(emgUi.sendOp2RobotRPC("mixed_behavior inverse_3classes"));
+            }
         }
         Button {
-            id:b16
-            text: "SET LOW STIFFNESS"
+
+            text: "STATUS"
             Layout.preferredWidth: 200
             Layout.alignment: Qt.AlignCenter
+            onClicked: {
+                console.log(emgUi.sendOp2RobotRPC("status"));
+            }
         }
-        Button {
-            id:b17
-            text: "SET MID STIFFNESS"
-            Layout.preferredWidth: 200
-            Layout.alignment: Qt.AlignCenter
-        }
-        Button {
-            id:b18
-            text: "SET HIGH STIFFNESS"
-            Layout.preferredWidth: 200
-            Layout.alignment: Qt.AlignCenter
-        }
+//        Button {
+//            id:b16
+//            text: "SET LOW STIFFNESS"
+//            Layout.preferredWidth: 200
+//            Layout.alignment: Qt.AlignCenter
+//        }
+//        Button {
+//            id:b17
+//            text: "SET MID STIFFNESS"
+//            Layout.preferredWidth: 200
+//            Layout.alignment: Qt.AlignCenter
+//        }
+//        Button {
+//            id:b18
+//            text: "SET HIGH STIFFNESS"
+//            Layout.preferredWidth: 200
+//            Layout.alignment: Qt.AlignCenter
+//        }
     }
     Text{
-        anchors.horizontalCenter: columnleft.horizontalCenter
+        anchors.horizontalCenter: columnRight.horizontalCenter
         anchors.bottom: columnleft.top
         text:"Operator"
         font.pointSize: 30
@@ -180,7 +230,7 @@ Item {
     }
     Text{
         width: 220
-        anchors.horizontalCenter: columnRight.horizontalCenter
+        anchors.horizontalCenter: columnleft.horizontalCenter
         anchors.bottom: columnRight.top
         text:"Collaborator"
         font.pointSize: 30
