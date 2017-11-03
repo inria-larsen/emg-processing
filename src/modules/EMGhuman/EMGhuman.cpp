@@ -231,7 +231,7 @@ class EMGhumanThread: public RateThread
 
                 }
 //                DSCPAstdMap(emgNorm);
-                DSCPAstdMap(emgMap);
+//                DSCPAstdMap(emgMap);
 
 
                 // compute stiffness
@@ -287,8 +287,8 @@ class EMGhumanThread: public RateThread
                 normEmgLogFile << timeDiffGlobal<<", ";
                 for(const auto& normIte: emgNorm){
                     //(SENSOR_INDEX_1, NORM_EMG)
-                    b.addInt(normIte.first);
-                    b.addDouble(normIte.second);
+                    b2.addInt(normIte.first);
+                    b2.addDouble(normIte.second);
 
                     if(logStoreData){
 

@@ -235,6 +235,40 @@ void EmGui::opSaveCalibration()
     }
 }
 
+void EmGui::opStartStreamingIcc()
+{
+    if(opRpcClientPort_.getOutputCount() > 0){
+        Bottle cmd;
+        cmd.addString("start");
+
+        std::cout<<"[INFO] Sending cmd to operator: " <<cmd.toString().c_str() << "."<<endl;
+
+        Bottle response;
+        opRpcClientPort_.write(cmd,response);
+
+        std::cout<<"[INFO] Got response from operator: "<<response.toString().c_str() <<"."<<endl;
+
+        //TODO: send response to QML and act accordingly
+    }
+}
+
+void EmGui::opStopStreamingIcc()
+{
+    if(opRpcClientPort_.getOutputCount() > 0){
+        Bottle cmd;
+        cmd.addString("stop");
+
+        std::cout<<"[INFO] Sending cmd to operator: " <<cmd.toString().c_str() << "."<<endl;
+
+        Bottle response;
+        opRpcClientPort_.write(cmd,response);
+
+        std::cout<<"[INFO] Got response from operator: "<<response.toString().c_str() <<"."<<endl;
+
+        //TODO: send response to QML and act accordingly
+    }
+}
+
 void EmGui::colCalibrateMax()
 {
     if(colRpcClientPort_.getOutputCount() > 0){
@@ -270,11 +304,51 @@ void EmGui::colSaveCalibration()
     }
 }
 
-QString EmGui::sendOp2RobotRPC(QString cmdStr)
+void EmGui::colStartStreamingIcc()
+{
+    if(colRpcClientPort_.getOutputCount() > 0){
+        Bottle cmd;
+        cmd.addString("start");
+
+        std::cout<<"[INFO] Sending cmd to collaborator: " <<cmd.toString().c_str() << "."<<endl;
+
+        Bottle response;
+        colRpcClientPort_.write(cmd,response);
+
+        std::cout<<"[INFO] Got response from collaborator: "<<response.toString().c_str() <<"."<<endl;
+
+        //TODO: send response to QML and act accordingly
+    }
+}
+
+void EmGui::colStopStreamingIcc()
+{
+    if(colRpcClientPort_.getOutputCount() > 0){
+        Bottle cmd;
+        cmd.addString("stop");
+
+        std::cout<<"[INFO] Sending cmd to collaborator: " <<cmd.toString().c_str() << "."<<endl;
+
+        Bottle response;
+        colRpcClientPort_.write(cmd,response);
+
+        std::cout<<"[INFO] Got response from collaborator: "<<response.toString().c_str() <<"."<<endl;
+
+        //TODO: send response to QML and act accordingly
+    }
+}
+
+
+
+QString EmGui::sendOp2RobotRPC(QString cmdStr, QString cmdStr2)
 {
     if(op2RobotRpcClientPort_.getOutputCount() > 0){
         Bottle cmd;
         cmd.addString(cmdStr.toStdString().c_str());
+
+        if(cmdStr2.size()>0){
+            cmd.addString(cmdStr2.toStdString().c_str());
+        }
 
         std::cout<<"[INFO] Sending cmd to operator2robot module: " <<cmd.toString().c_str() << "."<<endl;
 
@@ -290,11 +364,15 @@ QString EmGui::sendOp2RobotRPC(QString cmdStr)
     return QString("NOT CONNECTED");
 }
 
-QString EmGui::sendCol2RobotRPC(QString cmdStr)
+QString EmGui::sendCol2RobotRPC(QString cmdStr, QString cmdStr2)
 {
     if(col2RobotRpcClientPort_.getOutputCount() > 0){
         Bottle cmd;
         cmd.addString(cmdStr.toStdString().c_str());
+
+        if(cmdStr2.size()>0){
+            cmd.addString(cmdStr2.toStdString().c_str());
+        }
 
         std::cout<<"[INFO] Sending cmd to collaborator2robot module: " <<cmd.toString().c_str() << "."<<endl;
 

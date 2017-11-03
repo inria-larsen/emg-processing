@@ -36,6 +36,11 @@ using namespace EmgUtils;
 #define STATUS_STOPPED 10
 #define STATUS_RUNNING 20
 
+#define IMPEDANCE_LOW       0
+#define IMPEDANCE_MED       1
+#define IMPEDANCE_HIGH      2
+#define IMPEDANCE_FOLLOWER  3
+
 
 //=====================================
 //        EMGhuman2robot control thread
@@ -57,15 +62,18 @@ protected:
     bool useLeftArm_;
     int policy_;
     int status_;
+    int impedanceStatus_;
     std::string name_;
 
     double iccForearm_;
     double iccLowZero_,iccLowMax_,iccMedMax_,iccHighMax_;
+    std::vector<std::pair<int,int>> iccPairs_;
     
 public:
     CtrlThread(const double period, string robot_name, const string policy,
                double iccLowZero,double iccLowMax,double iccMedMax,double iccHighMax,
-               bool useLeft, bool useRight, bool useTorso, string name) :
+               bool useLeft, bool useRight, bool useTorso, string name
+               , std::vector<std::pair<int,int>> iccPair) :
         RateThread(int(period*1000.0)),
         robot_name_(robot_name),
         iccLowZero_(iccLowZero),
@@ -75,7 +83,8 @@ public:
         useLeftArm_(useLeft),
         useRightArm_(useRight),
         useTorso_(useTorso),
-        name_(name)
+        name_(name),
+        iccPairs_(iccPair)
 
     {
         if(policy == "direct"){
@@ -95,14 +104,15 @@ public:
         }
 
         status_=STATUS_STOPPED;
+//        setLeader();
     }
     
-    ~CtrlThread()
-    {
-        yInfo("Disconnecting the robot");
-        delete robotInt_;
+//    ~CtrlThread()
+//    {
+//        yInfo("Disconnecting the robot");
+//        delete robotInt_;
         
-    }
+//    }
 
     virtual bool threadInit()
     {
@@ -136,7 +146,14 @@ public:
         inIcc_ = iccInputPort_.read();
 
         if (inIcc_!=NULL) {
-            cout << "[INFO] [ICC]: " << inIcc_->toString().c_str() << endl;
+
+//            inEmg->get(i).asInt()
+            //verify if the icc pair coming is the same in the config file
+            if (inIcc_->get(0).asInt() == iccPairs_[0].first && inIcc_->get(1).asInt() == iccPairs_[0].second ){
+                iccForearm_ = inIcc_->get(2).asDouble();
+//                cout << "[INFO] [ICC]: " << iccForearm_ << endl;
+            }
+//            cout << "[INFO] [ICC]: " << inIcc_->toString().c_str() << endl;
         }
         //write to iccForearm_
         return true;
@@ -149,6 +166,8 @@ public:
         // read from port
         // note: we read even if we don't control the robot
         readFromEmg();
+//        cout << "[DEBUG] [ICC]: " << iccForearm_ << endl;
+//        printStatus();
 
         // we only control the robot if we decided that explicitly
         if(status_==STATUS_RUNNING)
@@ -171,12 +190,17 @@ public:
     
     virtual void threadRelease()
     {
+
+
         status_=STATUS_STOPPED;
 
         //close all yarp ports
 
         iccInputPort_.interrupt();
         iccInputPort_.close();
+
+        yInfo("Disconnecting the robot");
+        delete robotInt_;
     }
 
     /**
@@ -196,6 +220,15 @@ public:
                 yInfo(" ** Policy: NOT SET and we don't know why"); break;
         }
 
+        switch (impedanceStatus_) {
+            case IMPEDANCE_LOW: yInfo(" ** Impedance: LOW"); break;
+            case IMPEDANCE_MED: yInfo(" ** Impedance: MEDIUM"); break;
+            case IMPEDANCE_HIGH: yInfo(" ** Impedance: HIGH"); break;
+            case IMPEDANCE_FOLLOWER: yInfo(" ** Impedance: FOLLOWER"); break;
+            default:
+                yInfo(" ** Impedance: NOT SET and we don't know why"); break;
+        }
+
 
 
     }
@@ -203,6 +236,9 @@ public:
     // Follower is zero torque control
     bool setFollower()
     {
+        setPolicy(POLICY_MANUAL);
+        impedanceStatus_ = IMPEDANCE_FOLLOWER;
+
         if(useTorso_)
         {
             robotInt_->iimp[TORSO]->setImpedance(0, 0.0, 0.0);
@@ -249,12 +285,15 @@ public:
     // Leader is high stiffness
     bool setLeader()
     {
+        setPolicy(POLICY_MANUAL);
+
         return setHighStiffness();
     }
     
     // Hard-coded values come from demoForceControl -> soft Impedance
     bool setLowStiffness()
     {
+        impedanceStatus_ = IMPEDANCE_LOW;
         if(useRightArm_)
         {
             robotInt_->iimp[RIGHT_ARM]->setImpedance(0,0.2,0.0);
@@ -312,6 +351,8 @@ public:
     // Hard-coded values come from demoForceControl -> medium Impedance
     bool setMediumStiffness()
     {
+
+        impedanceStatus_ = IMPEDANCE_MED;
         if(useRightArm_)
         {
             robotInt_->iimp[RIGHT_ARM]->setImpedance(0,0.4,0.03);
@@ -369,6 +410,9 @@ public:
     // Hard-coded values come from demoForceControl -> hard Impedance
     bool setHighStiffness()
     {
+
+        impedanceStatus_ = IMPEDANCE_HIGH;
+
         if(useRightArm_)
         {
             robotInt_->iimp[RIGHT_ARM]->setImpedance(0,0.6,0.06);
@@ -432,15 +476,15 @@ public:
             break;
         case POLICY_DIRECT_3_STATES:
 
-            yInfo("Setting DIRECT 3 STATES policy");
+//            yInfo("Setting DIRECT 3 STATES policy");
             if(iccForearm_ <= iccLowMax_){
-                return setLowStiffness();
+                setLowStiffness();
             }
             else if(iccForearm_ <= iccMedMax_ && iccForearm_ > iccLowMax_){
-                return setMediumStiffness();
+                setMediumStiffness();
             }
             else if(iccForearm_ <= iccHighMax_ && iccForearm_ > iccMedMax_){
-                return setHighStiffness();
+                setHighStiffness();
             }
 
             break;
@@ -449,15 +493,18 @@ public:
             break;
         case POLICY_INVERSE_3_STATES:
 
-            yInfo("Setting INVERSE 3 STATES policy");
+//            yInfo("Setting INVERSE 3 STATES policy");
             if(iccForearm_ <= iccLowMax_){
-                return setHighStiffness();
+                cout<<"setting high stiff "<<iccForearm_<<endl;
+                setHighStiffness();
             }
             else if(iccForearm_ <= iccMedMax_ && iccForearm_ > iccLowMax_){
-                return setMediumStiffness();
+                cout<<"setting med stiff "<<iccForearm_<<endl;
+                setMediumStiffness();
             }
             else if(iccForearm_ <= iccHighMax_ && iccForearm_ > iccMedMax_){
-                return setLowStiffness();
+                cout<<"setting low stiff "<<iccForearm_<<endl;
+                setLowStiffness();
             }
 
             break;
@@ -633,19 +680,19 @@ public:
                 reply.clear();
                 reply.addString("DIRECT LINEAR: OK ");
             }
-            if(config=="inverse_linear")
+            else if(config=="inverse_linear")
             {
                 controlTh_->setPolicy(POLICY_INVERSE);
                 reply.clear();
                 reply.addString("INVERSE LINEAR: OK ");
             }
-            if(config=="direct_3classes")
+            else if(config=="direct_3classes")
             {
                 controlTh_->setPolicy(POLICY_DIRECT_3_STATES);
                 reply.clear();
                 reply.addString("DIRECT 3 STATES: OK ");
             }
-            if(config=="inverse_3classes")
+            else if(config=="inverse_3classes")
             {
                 controlTh_->setPolicy(POLICY_INVERSE_3_STATES);
                 reply.clear();
@@ -745,7 +792,7 @@ public:
         DSCPA(useRight);
         DSCPA(useTorso);
        
-        controlTh_ = new CtrlThread(rate, robotName,policy,iccLowZero,iccLowMax,iccMedMax,iccHighMax,useLeft,useRight,useTorso,name);
+        controlTh_ = new CtrlThread(rate, robotName,policy,iccLowZero,iccLowMax,iccMedMax,iccHighMax,useLeft,useRight,useTorso,name,iccPairs);
         if(!controlTh_->start())
         {
             yError("EMGhuman2robot: cannot start the control thread. Aborting.");

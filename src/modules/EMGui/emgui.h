@@ -86,12 +86,17 @@ public slots:
 
     void opCalibrateMax();
     void opSaveCalibration(void);
+    void opStartStreamingIcc();
+    void opStopStreamingIcc();
+
 
     void colCalibrateMax();
     void colSaveCalibration(void);
+    void colStartStreamingIcc();
+    void colStopStreamingIcc();
 
-    QString sendOp2RobotRPC(QString cmdStr);
-    QString sendCol2RobotRPC(QString cmdStr);
+    QString sendOp2RobotRPC(QString cmdStr, QString cmdStr2 = QString());
+    QString sendCol2RobotRPC(QString cmdStr, QString cmdStr2 = QString());
 
 
 signals:

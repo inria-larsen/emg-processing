@@ -14,6 +14,7 @@ Item {
 
             text: "Calibrate"
 
+
             onClicked: {
 //                stackView.push({item: Calibration, properties: {humanType: "collaborator"}})
                 stackView.push(Qt.resolvedUrl("Calibration.qml"));
@@ -36,19 +37,38 @@ Item {
             text: "Start Streaming ICC"
             Layout.alignment: Qt.AlignCenter
             Layout.preferredWidth: 200
+            Layout.preferredHeight: 50
             //REMEMBER THAT HERE YOU HAVE TO SEND THE RPC TO ANOTHER MODULE!! EMG HUMAN!
+            onClicked: {
+                emgUi.colStartStreamingIcc();
+            }
         }
         Button {
             id:b19
             text: "Stop Streaming ICC"
             Layout.alignment: Qt.AlignCenter
             Layout.preferredWidth: 200
+            Layout.preferredHeight: 50
+            onClicked: {
+                emgUi.colStopStreamingIcc();
+            }
+        }
+        Button {
+            id:b30
+            text: "Get Status"
+            Layout.preferredWidth: 200
+            Layout.preferredHeight: 50
+            Layout.alignment: Qt.AlignCenter
+            onClicked: {
+                console.log(emgUi.sendCol2RobotRPC("status"));
+            }
         }
         Button {
             id:b20
-            text: "Start Robot Impedance Control"
+            text: "Start Imp. Ctrl"
             Layout.alignment: Qt.AlignCenter
             Layout.preferredWidth: 200
+            Layout.preferredHeight: 50
             onClicked: {
                 console.log(emgUi.sendCol2RobotRPC("start"));
             }
@@ -56,17 +76,19 @@ Item {
         Button {
             id:b21
             height: 25
-            text: "Stop Robot Impedance Contrl"
+            text: "Stop Imp. Ctrl"
             Layout.alignment: Qt.AlignCenter
             Layout.preferredWidth: 200
+            Layout.preferredHeight: 50
             onClicked: {
                 console.log(emgUi.sendCol2RobotRPC("stop"));
             }
         }
         Button {
             id:b5
-            text: "LEADER"
+            text: "Set LEADER"
             Layout.preferredWidth: 200
+            Layout.preferredHeight: 50
             Layout.alignment: Qt.AlignCenter
             onClicked: {
                 console.log(emgUi.sendCol2RobotRPC("leader_behavior"));
@@ -74,93 +96,103 @@ Item {
         }
         Button {
             id:b6
-            text: "FOLLOWER"
+            text: "Set FOLLOWER"
             Layout.preferredWidth: 200
+            Layout.preferredHeight: 50
             Layout.alignment: Qt.AlignCenter
             onClicked: {
                 console.log(emgUi.sendCol2RobotRPC("follower_behavior"));
             }
         }
         Button {
-            id:b30
-            text: "STATUS"
-            Layout.preferredWidth: 200
-            Layout.alignment: Qt.AlignCenter
-            onClicked: {
-                console.log(emgUi.sendCol2RobotRPC("status"));
-            }
-        }
-        Button {
             id:b7
-            text: "DIRECT / 3 STATES"
+            text: "Set DIRECT / 3 STATES"
             Layout.preferredWidth: 200
+            Layout.preferredHeight: 50
             Layout.alignment: Qt.AlignCenter
 
             onClicked: {
-                console.log(emgUi.sendCol2RobotRPC("mixed_behavior direct_3classes"));
+                console.log(emgUi.sendCol2RobotRPC("mixed_behavior","direct_3classes"));
             }
         }
         Button {
             id:b8
-            text: "INVERSE / 3 STATES"
+            text: "Set INVERSE / 3 STATES"
             Layout.preferredWidth: 200
+            Layout.preferredHeight: 50
             Layout.alignment: Qt.AlignCenter
 
             onClicked: {
-                console.log(emgUi.sendCol2RobotRPC("mixed_behavior inverse_3classes"));
+                console.log(emgUi.sendCol2RobotRPC("mixed_behavior","inverse_3classes"));
             }
         }
-//        Button {
-//            id:b9
-//            text: "SET LOW STIFFNESS"
-//            Layout.preferredWidth: 200
-//            Layout.alignment: Qt.AlignCenter
-//        }
-//        Button {
-//            id:b10
-//            text: "SET MID STIFFNESS"
-//            Layout.preferredWidth: 200
-//            Layout.alignment: Qt.AlignCenter
-//        }
-//        Button {
-//            id:b11
-//            text: "SET HIGH STIFFNESS"
-//            Layout.preferredWidth: 200
-//            Layout.alignment: Qt.AlignCenter
-//        }
     }
 
     ColumnLayout {
         id: columnRight
         x: 1920/2 + 160
         y:100
-        //        anchors.left: parent.left
-        //        anchors.verticalCenter: parent.verticalCenter
+
         width: 640
         height: 1000/4
         spacing: 20
+        Button {
+
+            text: "Start Streaming ICC"
+            Layout.alignment: Qt.AlignCenter
+            Layout.preferredWidth: 200
+            Layout.preferredHeight: 50
+            //REMEMBER THAT HERE YOU HAVE TO SEND THE RPC TO ANOTHER MODULE!! EMG HUMAN!
+            onClicked: {
+                emgUi.opStartStreamingIcc();
+            }
+        }
+        Button {
+
+            text: "Stop Streaming ICC"
+            Layout.alignment: Qt.AlignCenter
+            Layout.preferredWidth: 200
+            Layout.preferredHeight: 50
+            onClicked: {
+                emgUi.opStopStreamingIcc();
+            }
+        }
+        Button {
+
+            text: "Get Status"
+            Layout.preferredWidth: 200
+            Layout.preferredHeight: 50
+            Layout.alignment: Qt.AlignCenter
+            onClicked: {
+                console.log(emgUi.sendOp2RobotRPC("status"));
+            }
+        }
 
         Button {
             id:b2
+            text:"Start Imp. Ctrl"
             Layout.alignment: Qt.AlignCenter
             Layout.preferredWidth: 200
+            Layout.preferredHeight: 50
             onClicked: {
                 console.log(emgUi.sendOp2RobotRPC("start"));
             }
         }
         Button {
             height: 25
-            text: "Stop Robot Impedance Contrl"
+            text: "Stop Imp. Ctrl"
             Layout.alignment: Qt.AlignCenter
             Layout.preferredWidth: 200
+            Layout.preferredHeight: 50
             onClicked: {
                 console.log(emgUi.sendOp2RobotRPC("stop"));
             }
         }
         Button {
             id:b12
-            text: "LEADER"
+            text: "Set Leader"
             Layout.preferredWidth: 200
+            Layout.preferredHeight: 50
             Layout.alignment: Qt.AlignCenter
             onClicked: {
                 console.log(emgUi.sendOp2RobotRPC("leader_behavior"));
@@ -168,8 +200,9 @@ Item {
         }
         Button {
             id:b13
-            text: "FOLLOWER"
+            text: "Set Follower"
             Layout.preferredWidth: 200
+            Layout.preferredHeight: 50
             Layout.alignment: Qt.AlignCenter
             onClicked: {
                 console.log(emgUi.sendOp2RobotRPC("follower_behavior"));
@@ -177,49 +210,24 @@ Item {
         }
         Button {
             id:b14
-            text: "DIRECT / 3 STATES"
+            text: "Set DIRECT / 3 STATES"
             Layout.preferredWidth: 200
+            Layout.preferredHeight: 50
             Layout.alignment: Qt.AlignCenter
             onClicked: {
-                console.log(emgUi.sendOp2RobotRPC("mixed_behavior direct_3classes"));
+                console.log(emgUi.sendOp2RobotRPC("mixed_behavior","direct_3classes"));
             }
         }
         Button {
             id:b15
-            text: "INVERSE / 3 STATES"
+            text: "Set INVERSE / 3 STATES"
             Layout.preferredWidth: 200
+            Layout.preferredHeight: 50
             Layout.alignment: Qt.AlignCenter
             onClicked: {
-                console.log(emgUi.sendOp2RobotRPC("mixed_behavior inverse_3classes"));
+                console.log(emgUi.sendOp2RobotRPC("mixed_behavior", "inverse_3classes"));
             }
         }
-        Button {
-
-            text: "STATUS"
-            Layout.preferredWidth: 200
-            Layout.alignment: Qt.AlignCenter
-            onClicked: {
-                console.log(emgUi.sendOp2RobotRPC("status"));
-            }
-        }
-//        Button {
-//            id:b16
-//            text: "SET LOW STIFFNESS"
-//            Layout.preferredWidth: 200
-//            Layout.alignment: Qt.AlignCenter
-//        }
-//        Button {
-//            id:b17
-//            text: "SET MID STIFFNESS"
-//            Layout.preferredWidth: 200
-//            Layout.alignment: Qt.AlignCenter
-//        }
-//        Button {
-//            id:b18
-//            text: "SET HIGH STIFFNESS"
-//            Layout.preferredWidth: 200
-//            Layout.alignment: Qt.AlignCenter
-//        }
     }
     Text{
         anchors.horizontalCenter: columnRight.horizontalCenter
@@ -236,5 +244,7 @@ Item {
         font.pointSize: 30
         color:"white"
     }
+
+
 
 }
