@@ -15,12 +15,13 @@ the roadmap of the AnDy project. Proc. Int. Conf. on Digital Human Models (DHM).
 ## Hardware Requirements
 
 * Delsys Wireless EMG Sensors, model Trigno
-* iCub robot
+* iCub robot (only if you are using EMGhuman2robot with the iCub option)
 
 ## Software Requirements
 
 * C++ 11
 * Yarp
+* Qt5 (for the GUI)
 * icub-main (only if you want to compile also the modules for controlling iCub)
 * icub-contrib 
 
@@ -35,6 +36,8 @@ ccmake ..
 make
 make install
 ```
+
+For the moment we have only installed in Ubuntu 16.04
 
 ## How to run the modules
 
