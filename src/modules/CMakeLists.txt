@@ -1,5 +1,5 @@
 # Copyright: (C) 2017 Inria
-# Author: Serena Ivaldi
+# Authors: Serena Ivaldi, Waldez Gomes
 # CopyPolicy: Released under the terms of the GNU GPL v2.0.
 
 set(BUILD_EMG_GUI ON CACHE BOOL "Build EMGui module (interacts with other EMG modules)")
