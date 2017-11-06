@@ -16,6 +16,7 @@
 
 
 #include <fstream>
+#include <sstream>
 #include <iostream>
 #include <emgutils.h>
 #include "robot_interfaces.h"
@@ -68,6 +69,8 @@ protected:
     double iccForearm_;
     double iccLowZero_,iccLowMax_,iccMedMax_,iccHighMax_;
     std::vector<std::pair<int,int>> iccPairs_;
+
+//    std::ofstream stiffStatusLogFile;
     
 public:
     CtrlThread(const double period, string robot_name, const string policy,
@@ -123,7 +126,7 @@ public:
 
 //        outPortStiffness.open(string("/"+name+"/stiffness_arm:o").c_str());
         iccInputPort_.open(string("/"+name_+"/icc:i").c_str());
-        
+
         yInfo("Connecting to the robot");
         //connect to robot
         robotInt_ = new robot_interfaces();
@@ -134,6 +137,8 @@ public:
              return false;
         }
         
+
+//        stiffStatusLogFile.open(string("EMGLog/DyadExperiment/_StiffStatusLog.csv").c_str());
 
         return true;
 
@@ -179,7 +184,10 @@ public:
                 if( !setAdaptiveImpedance() ){
                     yError("Could not set adaptive impedance");
                 }
+
             }
+//            stiffStatusLogFile << Time::now() << ", " << impedanceStatus_<<endl;
+//                    cout << "[DEBUG] [ICC]: " << iccForearm_ << endl;
         }
 
         
@@ -191,13 +199,15 @@ public:
     virtual void threadRelease()
     {
 
-
+//        stiffStatusLogFile.close();
         status_=STATUS_STOPPED;
 
         //close all yarp ports
 
         iccInputPort_.interrupt();
         iccInputPort_.close();
+
+
 
         yInfo("Disconnecting the robot");
         delete robotInt_;

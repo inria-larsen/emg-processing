@@ -259,6 +259,7 @@ class EMGhumanThread: public RateThread
                 b.clear();
 
                 iccLogFile << timeDiffGlobal << ", ";
+                iccLogFile << Time::now() << ", ";
                 for(const auto& iccPair:iccMap){
 
                     //send icc pairs to yarp ports
