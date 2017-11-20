@@ -70,7 +70,7 @@ protected:
     double iccLowZero_,iccLowMax_,iccMedMax_,iccHighMax_;
     std::vector<std::pair<int,int>> iccPairs_;
 
-//    std::ofstream stiffStatusLogFile;
+    std::ofstream stiffStatusLogFile;
     
 public:
     CtrlThread(const double period, string robot_name, const string policy,
@@ -138,7 +138,7 @@ public:
         }
         
 
-//        stiffStatusLogFile.open(string("EMGLog/DyadExperiment/_StiffStatusLog.csv").c_str());
+        stiffStatusLogFile.open(string("EMGLog/DyadExperiment/StiffStatusLog.csv").c_str());
 
         return true;
 
@@ -186,8 +186,9 @@ public:
                 }
 
             }
-//            stiffStatusLogFile << Time::now() << ", " << impedanceStatus_<<endl;
+            stiffStatusLogFile << Time::now() << ", " << impedanceStatus_<<endl;
 //                    cout << "[DEBUG] [ICC]: " << iccForearm_ << endl;
+            cout << "[DEBUG] [ICC]: " << impedanceStatus_ << endl;
         }
 
         
@@ -199,7 +200,7 @@ public:
     virtual void threadRelease()
     {
 
-//        stiffStatusLogFile.close();
+        stiffStatusLogFile.close();
         status_=STATUS_STOPPED;
 
         //close all yarp ports
@@ -429,7 +430,7 @@ public:
             robotInt_->iimp[RIGHT_ARM]->setImpedance(1,0.6,0.06);
             robotInt_->iimp[RIGHT_ARM]->setImpedance(2,0.6,0.06);
             robotInt_->iimp[RIGHT_ARM]->setImpedance(3,0.3,0.02);
-            robotInt_->iimp[RIGHT_ARM]->setImpedance(4,0.3,0.0);
+            robotInt_->iimp[RIGHT_ARM]->setImpedance(4,0.2,0.0);
             robotInt_->icmd[RIGHT_ARM]->setPositionMode(0);
             robotInt_->icmd[RIGHT_ARM]->setPositionMode(1);
             robotInt_->icmd[RIGHT_ARM]->setPositionMode(2);
@@ -440,6 +441,23 @@ public:
             robotInt_->iint[RIGHT_ARM]->setInteractionMode(2, VOCAB_IM_COMPLIANT);
             robotInt_->iint[RIGHT_ARM]->setInteractionMode(3, VOCAB_IM_COMPLIANT);
             robotInt_->iint[RIGHT_ARM]->setInteractionMode(4, VOCAB_IM_COMPLIANT);
+
+//            m_robot->iimp[kk]->setImpedance(0,0.6,0.06);
+//            m_robot->iimp[kk]->setImpedance(1,0.6,0.06);
+//            m_robot->iimp[kk]->setImpedance(2,0.6,0.06);
+//            m_robot->iimp[kk]->setImpedance(3,0.3,0.02);
+//            m_robot->iimp[kk]->setImpedance(4,0.2,0.00);
+//            m_robot->icmd[kk]->setPositionMode(0);
+//            m_robot->icmd[kk]->setPositionMode(1);
+//            m_robot->icmd[kk]->setPositionMode(2);
+//            m_robot->icmd[kk]->setPositionMode(3);
+//            m_robot->icmd[kk]->setPositionMode(4);
+//            m_robot->iint[kk]->setInteractionMode(0, VOCAB_IM_COMPLIANT);
+//            m_robot->iint[kk]->setInteractionMode(1, VOCAB_IM_COMPLIANT);
+//            m_robot->iint[kk]->setInteractionMode(2, VOCAB_IM_COMPLIANT);
+//            m_robot->iint[kk]->setInteractionMode(3, VOCAB_IM_COMPLIANT);
+//    m_robot->iint[kk]->setInteractionMode(4, VOCAB_IM_COMPLIANT);
+
         }
         
         if(useLeftArm_)

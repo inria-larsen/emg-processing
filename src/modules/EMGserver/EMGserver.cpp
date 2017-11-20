@@ -59,12 +59,12 @@ protected:
     std::vector<float> rawData;/**<Stores the raw data for each one of the 16 sensors*/
     std::vector<double> filteredData; /**<Stores the filtered data for each one of the 16 sensors*/
 
-    BufferedPort<Bottle> pingTest; /**<Test port used to verify the speed of this DelsysThread*/
+//    BufferedPort<Bottle> pingTest; /**<Test port used to verify the speed of this DelsysThread*/
 
 public:
     DelsysThread( EmgTcp *emgCon){
         emgConPtr_ = emgCon;
-        pingTest.open("/pingTeste");
+//        pingTest.open("/pingTeste");
     }
 
     virtual bool threadInit()
@@ -135,10 +135,10 @@ public:
                         m.unlock();
                         */
 
-                Bottle& testBot = pingTest.prepare();
-                testBot.clear();
-                testBot.addDouble(1);
-                pingTest.write();
+//                Bottle& testBot = pingTest.prepare();
+//                testBot.clear();
+//                testBot.addDouble(1);
+//                pingTest.write();
 
             }
 
@@ -151,8 +151,8 @@ public:
         if(!FAKE_EMG_DATA){
             emgConPtr_->stopDataStream();
         }
-        pingTest.interrupt();
-        pingTest.close();
+//        pingTest.interrupt();
+//        pingTest.close();
     }
 };
 
@@ -320,7 +320,7 @@ public:
                 }
 
                 filtered.write();
-                //                    cout << "[DEBUG] [FIL DATA] "<<outputFil.toString()<<endl;
+//                                    cout << "[DEBUG] [FIL DATA] "<<outputFil.toString()<<endl;
 
             }
 
