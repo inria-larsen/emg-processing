@@ -6,6 +6,7 @@
 #include <string>
 #include <stdio.h>
 #include <deque>
+#include <iostream>
 #include <map>
 
 using namespace std;

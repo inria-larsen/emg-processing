@@ -21,7 +21,6 @@
 #include <yarp/os/all.h>
 #include <stdio.h>
 #include <algorithm>
-#include "ImEmgData.h"
 #include <cmath>
 
 

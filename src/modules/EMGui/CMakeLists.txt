@@ -10,7 +10,7 @@ set(CMAKE_AUTORCC ON)
 
 find_package(Qt5 COMPONENTS Core Quick REQUIRED)
 
-include_directories(${YARP_INCLUDE_DIRS} include)
+#include_directories(${YARP_INCLUDE_DIRS} include)
 
 add_executable(${PROJECT_NAME} "main.cpp" "emgui.cpp" "qml.qrc")
 

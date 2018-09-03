@@ -6,7 +6,7 @@ set(BUILD_EMG_GUI ON CACHE BOOL "Build EMGui module (interacts with other EMG mo
 
 add_subdirectory(EMGserver)
 add_subdirectory(EMGhuman)
-add_subdirectory(EMGhuman2robot)
+#add_subdirectory(EMGhuman2robot)
 
 if(BUILD_EMG_GUI)
 
