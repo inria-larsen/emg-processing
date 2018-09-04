@@ -1,4 +1,4 @@
-# Copyright: (C) 2017 Inria
+# Copyright: (C) 2017-2018 Inria
 # Author: Waldez Gomes
 # CopyPolicy: Released under the terms of the GNU GPL v2.0.
 

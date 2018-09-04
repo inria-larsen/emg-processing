@@ -1,4 +1,4 @@
-# Copyright: (C) 2017 Inria
+# Copyright: (C) 2017-2018 Inria
 # Authors: Serena Ivaldi, Waldez Gomes
 # CopyPolicy: Released under the terms of the GNU GPL v2.0.
 
