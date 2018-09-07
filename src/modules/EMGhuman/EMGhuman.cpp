@@ -18,6 +18,7 @@
 #include <iostream>
 #include <algorithm>
 #include <emgutils.h>
+#include <dirent.h>
 
 using namespace std;
 using namespace yarp::os;
@@ -163,6 +164,27 @@ class EMGhumanThread: public RateThread
 
     void saveCalibration(){
         if(calibrationStatus_ == CALIB_STATUS_CALIBRATED_ALL){
+            DIR* dir = opendir("EMGLog/Calibration/");
+            if (dir)
+            {
+                /* Directory exists. */
+                closedir(dir);
+            }
+            else if (ENOENT == errno)
+            {
+                /* Directory does not exist. */
+                //Create Directory
+                int ret;
+                string s("mkdir -p EMGLog/Calibration/");
+                ret = system(s.c_str());
+                std::cout<<"[INFO] Created 'EMGLog/Calibration' directory"<<std::endl;
+            }
+            else
+            {
+                /* opendir() failed for some other reason. */
+                std::cout<<"[ERROR] Could not open directory to save log file"<<std::endl;
+                return;
+            }
 
             calibEmgLogFile.open(string("EMGLog/Calibration/"+std::to_string(subjectId_)+"_"+to_string((int)Time::now())+"_"+name+"_CalibEmgLog.csv").c_str());
 
