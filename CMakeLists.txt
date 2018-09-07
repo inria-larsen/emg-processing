@@ -11,18 +11,18 @@ set(CXX_EXTENSIONS NO)
 
 find_package(YARP REQUIRED)
 find_package(ICUB REQUIRED)
-find_package(ICUBcontrib REQUIRED)
+#find_package(ICUBcontrib REQUIRED)
 
 # list(APPEND CMAKE_MODULE_PATH ${YARP_MODULE_PATH})
 list(APPEND CMAKE_MODULE_PATH ${ICUB_MODULE_PATH})
-list(APPEND CMAKE_MODULE_PATH ${ICUBCONTRIB_MODULE_PATH})
+#list(APPEND CMAKE_MODULE_PATH ${ICUBCONTRIB_MODULE_PATH})
 
 # include(YarpInstallationHelpers)
-include(ICUBcontribHelpers)
-include(ICUBcontribOptions)
-icubcontrib_set_default_prefix()
+#include(ICUBcontribHelpers)
+#include(ICUBcontribOptions)
+#icubcontrib_set_default_prefix()
 
 add_subdirectory(src)
 add_subdirectory(app)
 
-icubcontrib_add_uninstall_target()
+#icubcontrib_add_uninstall_target()

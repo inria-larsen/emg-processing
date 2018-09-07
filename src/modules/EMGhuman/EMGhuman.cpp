@@ -173,6 +173,7 @@ class EMGhumanThread: public RateThread
             calibEmgLogFile << std::endl;
 
             calibEmgLogFile.close();
+            std::cout<<"[INFO] calibration saved"<<std::endl;
         }
     }
 
