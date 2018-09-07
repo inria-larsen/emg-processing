@@ -94,7 +94,8 @@ void EmGui::setOpBarLevel(double opBarLevel)
 {
     //Due to a bug in the qml component we're only assigning values to the bar level
     //that are lower than the max value
-    if(opBarLevel > EMG_MAX_VALUE) opBarLevel = EMG_MAX_VALUE;
+    if(opBarLevel >= EMG_MAX_VALUE) opBarLevel = EMG_MAX_VALUE;
+    else if(opBarLevel<=0) opBarLevel = 0.000001;
     opBarLevel_ = opBarLevel;
     emit opBarLevelChanged();
 }
@@ -169,7 +170,8 @@ void EmGui::setColBarLevel(double colBarLevel)
 {
     //Due to a bug in the qml component we're only assigning values to the bar level
     //that are lower than the max value
-    if(colBarLevel > EMG_MAX_VALUE) colBarLevel = EMG_MAX_VALUE;
+    if(colBarLevel >= EMG_MAX_VALUE) colBarLevel = EMG_MAX_VALUE;
+    else if(colBarLevel <= 0) colBarLevel = 0.000001;
     colBarLevel_ = colBarLevel;
     emit colBarLevelChanged();
 }
@@ -188,13 +190,14 @@ void EmGui::readEmg(void)
                 //change both bar levels
                 if(opSelectedSensor() == currentSenId){
                     setOpBarLevel(emgMap_[currentSenId]);
+//                    std::cout<<"[INFO] bar level " <<emgMap_[currentSenId]<<endl;
                 }
 
                 if(colSelectedSensor() == currentSenId){
                     setColBarLevel(emgMap_[currentSenId]);
                 }
             }
-    //        DSCPAstdMap(emgMap_);
+//            DSCPAstdMap(emgMap_);
         }
 
     }
@@ -390,17 +393,15 @@ QString EmGui::sendCol2RobotRPC(QString cmdStr, QString cmdStr2)
 
 void EmGui::beep()
 {
-    //ONLY WORKS WITH UBUNTU!!!
+    //ONLY WORKS WITH UBUNTU!
     int ret;
-//    string s("beep");
-//    string s("paplay /usr/share/sounds/ubuntu/notifications/Positive.ogg");
     string s("paplay /usr/share/sounds/speech-dispatcher/test.wav");
     ret = system(s.c_str());
 }
 
 void EmGui::beep2()
 {
-    //ONLY WORKS WITH UBUNTU!!!
+    //ONLY WORKS WITH UBUNTU!
     int ret;
     string s("paplay /usr/share/sounds/freedesktop/stereo/screen-capture.oga");
     ret = system(s.c_str());

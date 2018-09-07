@@ -37,7 +37,6 @@ namespace EmgUtils {
             Bottle &grp = rf.findGroup(s.c_str());
             for (int i=0; !grp.get(2+i).isNull(); i=i+2){
 
-                //v.push_back( grp.get(1+i).asInt() );
                 std::pair<int,int> aux;
                 aux.first = grp.get(1+i).asInt();
                 aux.second = grp.get(2+i).asInt();
@@ -76,7 +75,7 @@ namespace EmgUtils {
     {
         if(rf.check(s.c_str()))
         {
-            v = rf.find(s.c_str()).asDouble();
+            v = rf.find(s.c_str()).asInt();
         }
         else
         {

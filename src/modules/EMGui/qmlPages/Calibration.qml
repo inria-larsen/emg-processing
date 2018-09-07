@@ -11,8 +11,10 @@ Item {
     property int opTimerCountDown: emgUi.calibDur
     property int colTimerCountDown: emgUi.calibDur
 
-    property int opTimerRestCountDown: 60
-    property int colTimerRestCountDown: 60
+    property int countDown: 60
+
+    property int opTimerRestCountDown: countDown
+    property int colTimerRestCountDown: countDown
 
     //Global properties used by the calibration delegates
     property bool colRest: false
@@ -132,7 +134,7 @@ Item {
             opTimerRestCountDown = opTimerRestCountDown - 1;
             if(opTimerRestCountDown == 0){
                 opRestTimer.stop();
-                opTimerRestCountDown = 60;
+                opTimerRestCountDown = countDown;
                 opRest = false;
             }
         }
@@ -292,7 +294,7 @@ Item {
             colTimerRestCountDown = colTimerRestCountDown - 1;
             if(colTimerRestCountDown == 0){
                 colRestTimer.stop();
-                colTimerRestCountDown = 60;
+                colTimerRestCountDown = countDown;
                 colRest = false;
             }
         }
