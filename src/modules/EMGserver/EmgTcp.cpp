@@ -76,7 +76,7 @@
 			return cmdConnected_;
     	}
 
-    	std::cout << std::endl << "Connected to: "<< readCmdReply()->c_str();
+    	std::cout << std::endl << "Connected to: "<< readCmdReply();
     	std::cout << std::endl;
     	cmdConnected_ = true;
 
@@ -121,6 +121,7 @@
     	}
 
     	imEmgConnected_ = true;
+		yInfo("Connected to Emg Port");
     	return imEmgConnected_;
 	}
 
@@ -161,7 +162,7 @@
 
 	}
 
-	std::shared_ptr<std::string>  EmgTcp::readCmdReply(){
+	std::string  EmgTcp::readCmdReply(){
 
         int bytesAvail = 0;
         //wait for reply
@@ -176,14 +177,14 @@
                 recv(cmdSock_, tmp, bytesAvail, 0);
                 tmp[bytesAvail] = '\0';
 
-                auto cmdReply = std::make_shared<std::string>(tmp);
+                std::string cmdReply (tmp);
 
                 free(tmp);
                 return cmdReply;
         }
 
-        auto cmdReply = std::make_shared<std::string>("");//returns empty string
-        return cmdReply;
+        // auto cmdReply = std::make_shared<std::string>("");//returns empty string
+        return std::string("");
 	}
 	
 	std::string  EmgTcp::sendCmd(std::string cmd){
@@ -195,7 +196,7 @@
 
 		writeCmd(cmd);
 
-		return readCmdReply()->c_str();
+		return readCmdReply();
 
 	}
 
@@ -277,8 +278,15 @@
                     emgData.data = aux;
 
 				// std::cout << "\n gotdata: "<<nbytes <<" ";
-				//std::cout << "waited for timesteps: " << count;
+				// std::cout << "waited for timesteps: \n" << count;
 				count = 0;
+
+				// std::cout <<emgData.data[0]<<"\n";
+				// std::cout <<emgData.data[1]<<"\n";
+				// std::cout <<emgData.data[2]<<"\n";
+
+				// std::cout <<emgData.data[3]<<"\n";
+
 				return emgData;
 			}
 		}

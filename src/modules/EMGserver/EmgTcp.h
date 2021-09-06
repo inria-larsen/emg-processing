@@ -162,7 +162,7 @@ class EmgTcp{
 		 *
 		 * @return     Command reply string
 		 */
-		std::shared_ptr<std::string>  readCmdReply();
+		std::string  readCmdReply();
         
 
         char imEmgData_[SZ_DATA_IM_EMG];

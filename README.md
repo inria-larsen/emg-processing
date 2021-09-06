@@ -22,7 +22,6 @@ the roadmap of the AnDy project. Proc. Int. Conf. on Digital Human Models (DHM).
 * C++ 11
 * Yarp 3.x.x
 * Qt5 (for the GUI)
-* icub-main (for the use with iCub)
 
 ## Installation
 

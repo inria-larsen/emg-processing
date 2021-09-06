@@ -168,7 +168,7 @@ protected:
     string name; /**<Name used for the ports*/
 
     EmgTcp emgCon; /**<Connection to the Delsys Tcp Server*/
-    DelsysThread *delTh; /**<Fast thread to receive and process the data from Delsys Server*/
+    DelsysThread *delTh = NULL; /**<Fast thread to receive and process the data from Delsys Server*/
     BufferedPort<Bottle> raw; /**<Port that outputs the raw data at a slower rate*/
     BufferedPort<Bottle> filtered;/**<Port that outputs the raw data at a slower rate*/
 
@@ -210,6 +210,10 @@ public:
 
     virtual bool threadInit()
     {
+        //opening ports
+        raw.open(string("/"+name+"/raw:o").c_str());
+        filtered.open(string("/"+name+"/filtered:o").c_str());
+
         bool isConnected = false;
 
         if(!FAKE_EMG_DATA){
@@ -225,7 +229,7 @@ public:
         }
         else std::cout << "[WARNING] Sending Fake EMG Data (for debugging/developing)"<<endl;
 
-        // //creating the thread for the sensors
+        //creating the thread for the sensors
         delTh = new DelsysThread(&emgCon);
         if(!delTh->start())
         {
@@ -240,11 +244,6 @@ public:
         }
 
 
-        //opening ports
-        raw.open(string("/"+name+"/raw:o").c_str());
-        filtered.open(string("/"+name+"/filtered:o").c_str());
-        
-
         return true;
 
     }
@@ -252,8 +251,13 @@ public:
     virtual void threadRelease()
     {
         //close sensor thread
-        delTh->stop();
-        delete delTh;
+        if(delTh != NULL){
+            if(delTh->isRunning()){
+                delTh->stop();
+            }
+            delete delTh;
+
+        }
         //closing all the ports
         
         raw.interrupt();
@@ -302,7 +306,7 @@ public:
                 }
 
                 raw.write();
-                //                    cout << "[DEBUG] [RAW DATA] "<<outputRaw.toString()<<endl;
+                                //    cout << "[DEBUG] [RAW DATA] "<<outputRaw.toString()<<endl;
             }
 
 
@@ -320,7 +324,7 @@ public:
                 }
 
                 filtered.write();
-//                                    cout << "[DEBUG] [FIL DATA] "<<outputFil.toString()<<endl;
+                                //    cout << "[DEBUG] [FIL DATA] "<<outputFil.toString()<<endl;
 
             }
 
@@ -354,7 +358,7 @@ private:
     int nSensors_ = 0;
 
     // server thread
-    EMGserverThread *serverThread;
+    EMGserverThread *serverThread = NULL ;
 
 public:
 
@@ -500,7 +504,7 @@ public:
         DSCPAstdvec(senIds);
 
 
-        //creating the thread for the server
+        // //creating the thread for the server
         serverThread = new EMGserverThread(rate,name,ipAdd_,status_,nSensors_, senIds);
         if(!serverThread->start())
         {
@@ -524,12 +528,22 @@ public:
     bool close()
     {
         yInfo("EMGserver: closing module");
-        serverThread->stop();
-        delete serverThread;
+        if(serverThread != NULL ){
+
+            if(serverThread->isRunning()){
+                serverThread->stop();
+
+            }
+            serverThread->threadRelease();
+            delete serverThread;
+        }
 
         yInfo("EMGserver: closing RPC port");
-        rpc.interrupt();
-        rpc.close();
+        if(rpc.isOpen()){
+            rpc.interrupt();
+            rpc.close();
+
+        }
 
         return true;
     }
