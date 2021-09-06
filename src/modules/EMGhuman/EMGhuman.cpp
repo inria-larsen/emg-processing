@@ -19,11 +19,15 @@
 #include <algorithm>
 #include <emgutils.h>
 #include <dirent.h>
+#include <yarp/rosmsg/std_msgs/String.h>
 
 using namespace std;
 using namespace yarp::os;
 using namespace yarp::sig;
 using namespace EmgUtils;
+
+using yarp::os::Node;
+using yarp::os::Publisher;
 
 #define STATUS_STOPPED          0
 #define STATUS_STREAMING        1
@@ -31,6 +35,11 @@ using namespace EmgUtils;
 
 #define CALIB_STATUS_NOT_CALIBRATED   0
 #define CALIB_STATUS_CALIBRATED_ALL   1
+
+namespace {
+YARP_LOG_COMPONENT(TALKER, "yarp.example.ros.talker")
+constexpr double loop_delay = 0.1;
+}
 
 
 //===============================
@@ -709,6 +718,30 @@ int main(int argc, char * argv[])
     {
         yError("YARP server not available!");
         return -1;
+    }
+
+    /* creates a node called /yarp/talker */
+    Node node("/yarp/talker");
+ 
+    /* subscribe to topic chatter */
+    yarp::os::Publisher<yarp::rosmsg::std_msgs::String> publisher;
+    if (!publisher.topic("/chatter")) {
+        yCError(TALKER) << "Failed to create publisher to /chatter";
+        return -1;
+    }
+
+    int foo=0;
+    while (foo<10) {
+        /* prepare some data */
+        yarp::rosmsg::std_msgs::String data;
+        data.data = "Hello from YARP";
+ 
+        /* publish it to the topic */
+        publisher.write(data);
+ 
+        /* wait some time to avoid flooding with messages */
+        yarp::os::Time::delay(loop_delay);
+        foo++;
     }
 
     EMGhuman module;
