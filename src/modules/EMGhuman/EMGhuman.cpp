@@ -20,6 +20,7 @@
 #include <emgutils.h>
 #include <dirent.h>
 #include <yarp/rosmsg/std_msgs/String.h>
+#include <yarp/rosmsg/std_msgs/Float64MultiArray.h>
 
 using namespace std;
 using namespace yarp::os;
@@ -31,7 +32,8 @@ using yarp::os::Publisher;
 
 #define STATUS_STOPPED          0
 #define STATUS_STREAMING        1
-#define STATUS_CALIBRATION_MAX  2
+#define STATUS_STREAMING_ROS    2
+#define STATUS_CALIBRATION_MAX  3
 
 #define CALIB_STATUS_NOT_CALIBRATED   0
 #define CALIB_STATUS_CALIBRATED_ALL   1
@@ -106,6 +108,12 @@ class EMGhumanThread: public RateThread
         Bottle *outNorm, *outIcc, *outStiffness, *outEffort;
         BufferedPort<Bottle> outPortNorm, outPortIcc, outPortStiffness, outPortEffort;
 
+        // ROS
+        // std::shared_ptr<Node> node_;
+        yarp::os::Publisher<yarp::rosmsg::std_msgs::Float64MultiArray> rosPub_;
+        yarp::rosmsg::std_msgs::Float64MultiArray iccRosMsg_;
+
+
     public: 
 
     EMGhumanThread(const double _period, string _name, double calibDur,
@@ -139,6 +147,15 @@ class EMGhumanThread: public RateThread
         }
 
         startTimeGlobal_ = Time::now();
+
+        // node_ = std::make_shared<Node>("/yarp/");
+
+        /* subscribe to topic chatter */
+        //TODO: WHAT HAPPENS IF ROS_MASTER IS NOT AVAILABLE?
+        // if (!rosPub_.topic("/index_co_contraction")) {
+        //     yCError(TALKER) << "Failed to create publisher to /index_co_contraction";
+        //     // return -1;
+        // }
 
 
         return true;
@@ -251,7 +268,7 @@ class EMGhumanThread: public RateThread
                 return;
             }
 
-            if(status==STATUS_STREAMING){
+            if(status==STATUS_STREAMING || status == STATUS_STREAMING_ROS){
 
                 //normalize EMG data
                 for(const auto& emgIte:emgMap){
@@ -260,13 +277,9 @@ class EMGhumanThread: public RateThread
 
                     emgNorm[id] = (val)/(emgMapMax[id]);
 
-
                 }
 //                DSCPAstdMap(emgNorm);
 //                DSCPAstdMap(emgMap);
-
-
-                // compute stiffness
 
                 // compute ICC
 
@@ -286,52 +299,70 @@ class EMGhumanThread: public RateThread
             // send output to ports
 
             //send icc
-                Bottle& b = outPortIcc.prepare();
+                if(status == STATUS_STREAMING){
+                    Bottle& b = outPortIcc.prepare();
 
-                b.clear();
+                    b.clear();
 
-                iccLogFile << timeDiffGlobal << ", ";
-                iccLogFile << Time::now() << ", ";
-                for(const auto& iccPair:iccMap){
+                    iccLogFile << timeDiffGlobal << ", ";
+                    iccLogFile << Time::now() << ", ";
+                    for(const auto& iccPair:iccMap){
 
-                    //send icc pairs to yarp ports
-                    //(SENSOR_INDEX_1, SENSOR_INDEX_2, ICC)
-                    b.addInt(iccPair.first.first);
-                    b.addInt(iccPair.first.second);
-                    b.addDouble(iccPair.second);
+                        //send icc pairs to yarp ports
+                        //(SENSOR_INDEX_1, SENSOR_INDEX_2, ICC)
+                        b.addInt(iccPair.first.first);
+                        b.addInt(iccPair.first.second);
+                        b.addDouble(iccPair.second);
 
-                    if(logStoreData){
+                        if(logStoreData){
 
-                        iccLogFile <<iccPair.first.first<<", "
-                                   << iccPair.first.second<<", "
-                                   << iccPair.second<<", ";
+                            iccLogFile <<iccPair.first.first<<", "
+                                    << iccPair.first.second<<", "
+                                    << iccPair.second<<", ";
 
+                        }
                     }
-                }
-                iccLogFile << std::endl;
+                    iccLogFile << std::endl;
 
-                outPortIcc.write();
+                    outPortIcc.write();
 
-            //send normalized values
-                Bottle& b2 = outPortNorm.prepare();
+                //send normalized values
+                    Bottle& b2 = outPortNorm.prepare();
 
-                b2.clear();
+                    b2.clear();
 
-                normEmgLogFile << timeDiffGlobal<<", ";
-                for(const auto& normIte: emgNorm){
-                    //(SENSOR_INDEX_1, NORM_EMG)
-                    b2.addInt(normIte.first);
-                    b2.addDouble(normIte.second);
+                    normEmgLogFile << timeDiffGlobal<<", ";
+                    for(const auto& normIte: emgNorm){
+                        //(SENSOR_INDEX_1, NORM_EMG)
+                        b2.addInt(normIte.first);
+                        b2.addDouble(normIte.second);
 
-                    if(logStoreData){
+                        if(logStoreData){
 
-                        normEmgLogFile << normIte.first <<", "<< normIte.second<<", ";
+                            normEmgLogFile << normIte.first <<", "<< normIte.second<<", ";
 
+                        }
                     }
-                }
-                normEmgLogFile << std::endl;
+                    normEmgLogFile << std::endl;
 
-                outPortNorm.write();
+                    outPortNorm.write();
+
+                }
+                else if(status == STATUS_STREAMING_ROS){
+                    // send ICC to ROS topics from here
+                    
+                    // iccRosMsg_.data.resize(iccMap.size());
+                    // int i=0;
+                    // for(const auto& iccPair: iccMap){
+                    //     iccRosMsg_.data[i] = iccPair.second;
+                    //     i++;
+                    // }
+                    
+                    iccRosMsg_.data.resize(1);
+                    iccRosMsg_.data[0] = 1.0;
+                    // rosPub_.write(iccRosMsg_);
+
+                }
 
 
             } else if(status==STATUS_CALIBRATION_MAX){
@@ -416,6 +447,27 @@ class EMGhumanThread: public RateThread
     void stopStreaming()
     {
         status=STATUS_STOPPED;
+    }
+
+    void startStreamingRos(){
+        
+        // if(calibrationStatus_ != CALIB_STATUS_CALIBRATED_ALL) {
+        //     yError("EMGhuman: Can't stream. Data is not calibrated yet");
+        //     return;
+        // }
+        // else if(status == STATUS_STREAMING){
+        //     yError("EMGhuman: Stop Yarp streaming before starting ROS streaming.");
+        //     return;
+        // }
+        // else if(status == STATUS_CALIBRATION_MAX){
+        //     yError("EMGhuman: Calibration is in execution, module can not stream ICC.");
+        // }
+        status = STATUS_STREAMING_ROS;
+        return;
+    }
+    void stopStreamingRos(){
+        status = STATUS_STOPPED;
+        return;
     }
 
     void startCalibrationMax()
@@ -524,7 +576,9 @@ public:
             reply.clear();
             reply.addString("Here is the list of available commands:");
             reply.addString("stop");
+            reply.addString("stop_ros");
             reply.addString("start");
+            reply.addString("start_ros");
             reply.addString("status");
             reply.addString("calibration_status");
             reply.addString("calibrate_max #SENSOR_ID");
@@ -533,6 +587,7 @@ public:
         }  
         else if(cmd=="stop")
         {
+            //TODO: the reply should be based on the return from the streaming fun.
             humanThread_->stopStreaming();
             reply.clear(); reply.addString("OK");
             //cout<<" test";
@@ -546,6 +601,18 @@ public:
                         cout<<"[INFO] " << reply.toString()<<endl;
             return true;
         } 
+        else if(cmd=="start_ros"){
+            humanThread_->startStreamingRos();
+            reply.clear(); reply.addString("OK");
+                        cout<<"[INFO] " << reply.toString()<<endl;
+            return true;
+        }
+        else if(cmd=="stop_ros"){
+            humanThread_->stopStreamingRos();
+            reply.clear(); reply.addString("OK");
+                        cout<<"[INFO] " << reply.toString()<<endl;
+            return true;
+        }
         else if(cmd=="status")
         {
             int curStatus=humanThread_->getStatus();
@@ -554,6 +621,7 @@ public:
             if(curStatus==STATUS_STOPPED) reply.addString(" Status = STOPPED");
             else if(curStatus==STATUS_CALIBRATION_MAX) reply.addString(" Status = CALIBRATION OF MAX VALUE ONLY");
             else if(curStatus==STATUS_STREAMING) reply.addString(" Status = STREAMING");
+            else if(curStatus==STATUS_STREAMING_ROS) reply.addString(" Status = STREAMING TO ROS TOPIC");
             else reply.addString(" Status = IMPOSSIBLE");
                         cout<<"[INFO] " << reply.toString()<<endl;
             return true;

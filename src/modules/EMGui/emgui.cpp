@@ -210,6 +210,8 @@ void EmGui::opCalibrateMax()
         cmd.addString("calibrate_max");
         cmd.addInt(opSelectedSensor());
 
+        //TODO: This act of sending to an RPC bottle and getting the reply should be a function of its own
+        
         std::cout<<"[INFO] Sending cmd to operator: " <<cmd.toString().c_str() << "."<<endl;
 
         Bottle response;
@@ -270,6 +272,38 @@ void EmGui::opStopStreamingIcc()
 
         //TODO: send response to QML and act accordingly
     }
+}
+
+void EmGui::opStartStreamingIccRos(void){
+    if(opRpcClientPort_.getOutputCount() > 0){
+        Bottle cmd;
+        cmd.addString("start_ros");
+
+        std::cout<<"[INFO] Sending cmd to operator: " <<cmd.toString().c_str() << "."<<endl;
+
+        Bottle response;
+        opRpcClientPort_.write(cmd,response);
+
+        std::cout<<"[INFO] Got response from operator: "<<response.toString().c_str() <<"."<<endl;
+
+        //TODO: send response to QML and act accordingly
+    }
+}
+void EmGui::opStopStreamingIccRos(void){
+    if(opRpcClientPort_.getOutputCount() > 0){
+        Bottle cmd;
+        cmd.addString("stop_ros");
+
+        std::cout<<"[INFO] Sending cmd to operator: " <<cmd.toString().c_str() << "."<<endl;
+
+        Bottle response;
+        opRpcClientPort_.write(cmd,response);
+
+        std::cout<<"[INFO] Got response from operator: "<<response.toString().c_str() <<"."<<endl;
+
+        //TODO: send response to QML and act accordingly
+    }
+
 }
 
 void EmGui::colCalibrateMax()

@@ -88,6 +88,8 @@ public slots:
     void opSaveCalibration(void);
     void opStartStreamingIcc();
     void opStopStreamingIcc();
+    void opStartStreamingIccRos(void);
+    void opStopStreamingIccRos(void);
 
 
     void colCalibrateMax();

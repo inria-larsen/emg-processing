@@ -53,79 +53,79 @@ Item {
                 emgUi.colStopStreamingIcc();
             }
         }
-        Button {
-            id:b30
-            text: "Get Status"
-            Layout.preferredWidth: 200
-            Layout.preferredHeight: 50
-            Layout.alignment: Qt.AlignCenter
-            onClicked: {
-                console.log(emgUi.sendCol2RobotRPC("status"));
-            }
-        }
-        Button {
-            id:b20
-            text: "Start Imp. Ctrl"
-            Layout.alignment: Qt.AlignCenter
-            Layout.preferredWidth: 200
-            Layout.preferredHeight: 50
-            onClicked: {
-                console.log(emgUi.sendCol2RobotRPC("start"));
-            }
-        }
-        Button {
-            id:b21
-            height: 25
-            text: "Stop Imp. Ctrl"
-            Layout.alignment: Qt.AlignCenter
-            Layout.preferredWidth: 200
-            Layout.preferredHeight: 50
-            onClicked: {
-                console.log(emgUi.sendCol2RobotRPC("stop"));
-            }
-        }
-        Button {
-            id:b5
-            text: "Set LEADER"
-            Layout.preferredWidth: 200
-            Layout.preferredHeight: 50
-            Layout.alignment: Qt.AlignCenter
-            onClicked: {
-                console.log(emgUi.sendCol2RobotRPC("leader_behavior"));
-            }
-        }
-        Button {
-            id:b6
-            text: "Set FOLLOWER"
-            Layout.preferredWidth: 200
-            Layout.preferredHeight: 50
-            Layout.alignment: Qt.AlignCenter
-            onClicked: {
-                console.log(emgUi.sendCol2RobotRPC("follower_behavior"));
-            }
-        }
-        Button {
-            id:b7
-            text: "Set DIRECT / 3 STATES"
-            Layout.preferredWidth: 200
-            Layout.preferredHeight: 50
-            Layout.alignment: Qt.AlignCenter
+        // Button {
+        //     id:b30
+        //     text: "Get Status"
+        //     Layout.preferredWidth: 200
+        //     Layout.preferredHeight: 50
+        //     Layout.alignment: Qt.AlignCenter
+        //     onClicked: {
+        //         console.log(emgUi.sendCol2RobotRPC("status"));
+        //     }
+        // }
+        // Button {
+        //     id:b20
+        //     text: "Start Imp. Ctrl"
+        //     Layout.alignment: Qt.AlignCenter
+        //     Layout.preferredWidth: 200
+        //     Layout.preferredHeight: 50
+        //     onClicked: {
+        //         console.log(emgUi.sendCol2RobotRPC("start"));
+        //     }
+        // }
+        // Button {
+        //     id:b21
+        //     height: 25
+        //     text: "Stop Imp. Ctrl"
+        //     Layout.alignment: Qt.AlignCenter
+        //     Layout.preferredWidth: 200
+        //     Layout.preferredHeight: 50
+        //     onClicked: {
+        //         console.log(emgUi.sendCol2RobotRPC("stop"));
+        //     }
+        // }
+        // Button {
+        //     id:b5
+        //     text: "Set LEADER"
+        //     Layout.preferredWidth: 200
+        //     Layout.preferredHeight: 50
+        //     Layout.alignment: Qt.AlignCenter
+        //     onClicked: {
+        //         console.log(emgUi.sendCol2RobotRPC("leader_behavior"));
+        //     }
+        // }
+        // Button {
+        //     id:b6
+        //     text: "Set FOLLOWER"
+        //     Layout.preferredWidth: 200
+        //     Layout.preferredHeight: 50
+        //     Layout.alignment: Qt.AlignCenter
+        //     onClicked: {
+        //         console.log(emgUi.sendCol2RobotRPC("follower_behavior"));
+        //     }
+        // }
+        // Button {
+        //     id:b7
+        //     text: "Set DIRECT / 3 STATES"
+        //     Layout.preferredWidth: 200
+        //     Layout.preferredHeight: 50
+        //     Layout.alignment: Qt.AlignCenter
 
-            onClicked: {
-                console.log(emgUi.sendCol2RobotRPC("mixed_behavior","direct_3classes"));
-            }
-        }
-        Button {
-            id:b8
-            text: "Set INVERSE / 3 STATES"
-            Layout.preferredWidth: 200
-            Layout.preferredHeight: 50
-            Layout.alignment: Qt.AlignCenter
+        //     onClicked: {
+        //         console.log(emgUi.sendCol2RobotRPC("mixed_behavior","direct_3classes"));
+        //     }
+        // }
+        // Button {
+        //     id:b8
+        //     text: "Set INVERSE / 3 STATES"
+        //     Layout.preferredWidth: 200
+        //     Layout.preferredHeight: 50
+        //     Layout.alignment: Qt.AlignCenter
 
-            onClicked: {
-                console.log(emgUi.sendCol2RobotRPC("mixed_behavior","inverse_3classes"));
-            }
-        }
+        //     onClicked: {
+        //         console.log(emgUi.sendCol2RobotRPC("mixed_behavior","inverse_3classes"));
+        //     }
+        // }
     }
 
     ColumnLayout {
@@ -138,7 +138,7 @@ Item {
         spacing: 20
         Button {
 
-            text: "Start Streaming ICC"
+            text: "Start ICC Yarp"
             Layout.alignment: Qt.AlignCenter
             Layout.preferredWidth: 200
             Layout.preferredHeight: 50
@@ -149,7 +149,7 @@ Item {
         }
         Button {
 
-            text: "Stop Streaming ICC"
+            text: "Stop ICC Yarp"
             Layout.alignment: Qt.AlignCenter
             Layout.preferredWidth: 200
             Layout.preferredHeight: 50
@@ -159,75 +159,95 @@ Item {
         }
         Button {
 
-            text: "Get Status"
+            text: "Start ICC ROS"
+            Layout.alignment: Qt.AlignCenter
             Layout.preferredWidth: 200
             Layout.preferredHeight: 50
-            Layout.alignment: Qt.AlignCenter
             onClicked: {
-                console.log(emgUi.sendOp2RobotRPC("status"));
+                emgUi.opStartStreamingIccRos();
             }
         }
+        Button {
 
-        Button {
-            id:b2
-            text:"Start Imp. Ctrl"
+            text: "Stop ICC ROS"
             Layout.alignment: Qt.AlignCenter
             Layout.preferredWidth: 200
             Layout.preferredHeight: 50
             onClicked: {
-                console.log(emgUi.sendOp2RobotRPC("start"));
+                emgUi.opStopStreamingIccRos();
             }
         }
-        Button {
-            height: 25
-            text: "Stop Imp. Ctrl"
-            Layout.alignment: Qt.AlignCenter
-            Layout.preferredWidth: 200
-            Layout.preferredHeight: 50
-            onClicked: {
-                console.log(emgUi.sendOp2RobotRPC("stop"));
-            }
-        }
-        Button {
-            id:b12
-            text: "Set Leader"
-            Layout.preferredWidth: 200
-            Layout.preferredHeight: 50
-            Layout.alignment: Qt.AlignCenter
-            onClicked: {
-                console.log(emgUi.sendOp2RobotRPC("leader_behavior"));
-            }
-        }
-        Button {
-            id:b13
-            text: "Set Follower"
-            Layout.preferredWidth: 200
-            Layout.preferredHeight: 50
-            Layout.alignment: Qt.AlignCenter
-            onClicked: {
-                console.log(emgUi.sendOp2RobotRPC("follower_behavior"));
-            }
-        }
-        Button {
-            id:b14
-            text: "Set DIRECT / 3 STATES"
-            Layout.preferredWidth: 200
-            Layout.preferredHeight: 50
-            Layout.alignment: Qt.AlignCenter
-            onClicked: {
-                console.log(emgUi.sendOp2RobotRPC("mixed_behavior","direct_3classes"));
-            }
-        }
-        Button {
-            id:b15
-            text: "Set INVERSE / 3 STATES"
-            Layout.preferredWidth: 200
-            Layout.preferredHeight: 50
-            Layout.alignment: Qt.AlignCenter
-            onClicked: {
-                console.log(emgUi.sendOp2RobotRPC("mixed_behavior", "inverse_3classes"));
-            }
-        }
+        // Button {
+
+        //     text: "Get Status"
+        //     Layout.preferredWidth: 200
+        //     Layout.preferredHeight: 50
+        //     Layout.alignment: Qt.AlignCenter
+        //     onClicked: {
+        //         console.log(emgUi.sendOp2RobotRPC("status"));
+        //     }
+        // }
+
+        // Button {
+        //     id:b2
+        //     text:"Start Imp. Ctrl"
+        //     Layout.alignment: Qt.AlignCenter
+        //     Layout.preferredWidth: 200
+        //     Layout.preferredHeight: 50
+        //     onClicked: {
+        //         console.log(emgUi.sendOp2RobotRPC("start"));
+        //     }
+        // }
+        // Button {
+        //     height: 25
+        //     text: "Stop Imp. Ctrl"
+        //     Layout.alignment: Qt.AlignCenter
+        //     Layout.preferredWidth: 200
+        //     Layout.preferredHeight: 50
+        //     onClicked: {
+        //         console.log(emgUi.sendOp2RobotRPC("stop"));
+        //     }
+        // }
+        // Button {
+        //     id:b12
+        //     text: "Set Leader"
+        //     Layout.preferredWidth: 200
+        //     Layout.preferredHeight: 50
+        //     Layout.alignment: Qt.AlignCenter
+        //     onClicked: {
+        //         console.log(emgUi.sendOp2RobotRPC("leader_behavior"));
+        //     }
+        // }
+        // Button {
+        //     id:b13
+        //     text: "Set Follower"
+        //     Layout.preferredWidth: 200
+        //     Layout.preferredHeight: 50
+        //     Layout.alignment: Qt.AlignCenter
+        //     onClicked: {
+        //         console.log(emgUi.sendOp2RobotRPC("follower_behavior"));
+        //     }
+        // }
+        // Button {
+        //     id:b14
+        //     text: "Set DIRECT / 3 STATES"
+        //     Layout.preferredWidth: 200
+        //     Layout.preferredHeight: 50
+        //     Layout.alignment: Qt.AlignCenter
+        //     onClicked: {
+        //         console.log(emgUi.sendOp2RobotRPC("mixed_behavior","direct_3classes"));
+        //     }
+        // }
+        // Button {
+        //     id:b15
+        //     text: "Set INVERSE / 3 STATES"
+        //     Layout.preferredWidth: 200
+        //     Layout.preferredHeight: 50
+        //     Layout.alignment: Qt.AlignCenter
+        //     onClicked: {
+        //         console.log(emgUi.sendOp2RobotRPC("mixed_behavior", "inverse_3classes"));
+        //     }
+        // }
     }
     Text{
         anchors.horizontalCenter: columnRight.horizontalCenter
