@@ -19,16 +19,24 @@
 #include <algorithm>
 #include <emgutils.h>
 #include <dirent.h>
-#include <yarp/rosmsg/std_msgs/String.h>
-#include <yarp/rosmsg/std_msgs/Float64MultiArray.h>
+// #include <yarp/rosmsg/std_msgs/String.h>
+// #include <yarp/rosmsg/std_msgs/Float64MultiArray.h>
+
+// tcp includes to comm with ros router script
+#include <sys/socket.h>
+#include <sys/ioctl.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <arpa/inet.h>
+#include <unistd.h>
 
 using namespace std;
 using namespace yarp::os;
 using namespace yarp::sig;
 using namespace EmgUtils;
 
-using yarp::os::Node;
-using yarp::os::Publisher;
+// using yarp::os::Node;
+// using yarp::os::Publisher;
 
 #define STATUS_STOPPED          0
 #define STATUS_STREAMING        1
@@ -110,26 +118,94 @@ class EMGhumanThread: public RateThread
 
         // ROS
         // std::shared_ptr<Node> node_;
-        yarp::os::Publisher<yarp::rosmsg::std_msgs::Float64MultiArray> rosPub_;
-        yarp::rosmsg::std_msgs::Float64MultiArray iccRosMsg_;
+        // yarp::os::Publisher<yarp::rosmsg::std_msgs::Float64MultiArray> rosPub_;
+        // yarp::rosmsg::std_msgs::Float64MultiArray iccRosMsg_;
+
+        // tcp connection to ROS router script ---> yarp/ros interface is not working for remote computers--> the topic is sent but data is not received
+        struct sockaddr_in addr_;
+        std::string rosAdd_ = "jarvis";
+        int rosPort_ = 10501; //high number not to conflict with yarp local ports
+        int rosSock_;
+        int rosStreaming_ = 0;      
 
 
     public: 
 
     EMGhumanThread(const double _period, string _name, double calibDur,
-                   std::vector<int> senId,std::vector<std::pair<int,int>> iccPairs, int subId)
+                   std::vector<int> senId,std::vector<std::pair<int,int>> iccPairs, int subId, int rosStreaming)
         : RateThread(int(_period*1000.0)),
           calibDur_(calibDur),
           name(_name),
           sensorIds_(senId),
           iccPairs_(iccPairs),
-          subjectId_(subId)
+          subjectId_(subId),
+          rosStreaming_(rosStreaming)
     {
         status = STATUS_STOPPED;
 //        status = STATUS_STREAMING;
+
+        if(rosStreaming_){
+            // connect to ROS router script
+                //Initialize addr_ struct
+                const char* cServIpAdd = const_cast<char*>(rosAdd_.c_str());
+                memset (&addr_, 0, sizeof(addr_));
+
+                addr_.sin_family = AF_INET;
+
+                // if (resolveHostName(cServIpAdd, &(addr_.sin_addr)) != 0 ) {
+                    inet_pton(PF_INET, cServIpAdd, &(addr_.sin_addr));        
+                // }
+                // else{
+                //     yFatal("Could not find host address");
+                // }
+
+                // connect to port
+                //assign correct port
+                addr_.sin_port = htons(rosPort_);
+
+                //create a socket
+                rosSock_ = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+                if (rosSock_ < 0) {
+                    yError("Problem connecting to server [socket]");
+                    //throw std::runtime_error("Problem connecting to server [socket]");
+                    yFatal("Could not connect to ros router script server socket");
+                }
+
+                //try to connect
+                if (connect(rosSock_, (struct sockaddr*)&addr_, sizeof(addr_)) != 0)
+                {
+                    
+                    if(close(rosSock_) != 0){
+                        yFatal("Failed to close ros router script socket");
+                    }
+                    // throw std::runtime_error("Problem connecting to server");
+                    yFatal("Problem connecting to ros router script port");
+                }
+        }
         yInfo("EMGhuman: thread created");
 
     }
+
+    ~EMGhumanThread(){
+
+        if(close(rosSock_) != 0){
+			yFatal("Failed to close ros router script socket");
+		}
+    }
+
+    int resolveHostName(const char* hostname, struct in_addr* addr) 
+	{
+	    struct addrinfo *res;
+	  
+	    int result = getaddrinfo (hostname, NULL, NULL, &res);
+	    if (result == 0)
+	    {
+	        memcpy(addr, &((struct sockaddr_in *) res->ai_addr)->sin_addr, sizeof(struct in_addr));
+	        freeaddrinfo(res);
+    	}
+
+    	return result;
+	}
 
     virtual bool threadInit()
     {
@@ -236,6 +312,19 @@ class EMGhumanThread: public RateThread
         if(status==STATUS_STOPPED)
         {
             // Do nothing
+            // yInfo("stopped");
+            // //THIS IS JUST TO DEBUG !!! REMOVE RIGHT AFTER!!!1
+            // if(rosStreaming_){
+            //     std::string dataStr("");
+            //     dataStr.append(std::string("1.0, 2.3, "));
+            //     dataStr.append("\r");
+            //     ssize_t n = send(rosSock_, dataStr.c_str(), strlen(dataStr.c_str()), 0); 
+            //     if (n < 0)	{
+            //         //throw std::runtime_error("Problem sending command to server");
+            //         yError("Problem sending data to ros router script!");
+            //     }
+
+            // }
 
         }
         else {
@@ -349,6 +438,7 @@ class EMGhumanThread: public RateThread
 
                 }
                 else if(status == STATUS_STREAMING_ROS){
+                    yInfo("Trying to send something");
                     // send ICC to ROS topics from here
                     
                     // iccRosMsg_.data.resize(iccMap.size());
@@ -358,10 +448,20 @@ class EMGhumanThread: public RateThread
                     //     i++;
                     // }
                     
-                    iccRosMsg_.data.resize(1);
-                    iccRosMsg_.data[0] = 1.0;
+                    // iccRosMsg_.data.resize(1);
+                    // iccRosMsg_.data[0] = 1.0;
                     // rosPub_.write(iccRosMsg_);
-
+                    std::string dataStr("");
+                    for(const auto& iccPair: iccMap){
+                        dataStr.append(std::to_string(iccPair.second)+std::string(", "));
+                    }
+                    // dataStr.append(std::string("1.0, 2.3, "));
+                    dataStr.append("\r");
+                    ssize_t n = send(rosSock_, dataStr.c_str(), strlen(dataStr.c_str()), 0); 
+                    if (n < 0)	{
+                        //throw std::runtime_error("Problem sending command to server");
+                        yError("Problem sending data to ros router script!");
+                    }
                 }
 
 
@@ -462,6 +562,7 @@ class EMGhumanThread: public RateThread
         // else if(status == STATUS_CALIBRATION_MAX){
         //     yError("EMGhuman: Calibration is in execution, module can not stream ICC.");
         // }
+        cout << "change status to streaming ros";
         status = STATUS_STREAMING_ROS;
         return;
     }
@@ -535,6 +636,8 @@ private:
 
     // human thread
     EMGhumanThread *humanThread_;
+
+    int rosStreaming_ = 0;
 
 public:
 
@@ -705,6 +808,8 @@ public:
         readParams(rf,"sensorIds",sensorIds_);
         readParams(rf,"iccPairs",iccPairs);
         readValue(rf,"subject_id",subjectId_,0);
+        // readValue(rf,"rosSt",rosStreaming_,0);
+        rosStreaming_ = 1;
         
 
         cout<<"Parameters from init file: "<<endl;
@@ -713,9 +818,11 @@ public:
         DSCPAstdvec(sensorIds_);
         DSCPAstdvecpair(iccPairs);
         DSCPA(subjectId_);
+        std::string foo((rosStreaming_)?"ON":"OFF"); 
+        cout<<"ROS streaming is "<<foo<<endl;
 
         //creating the thread for the server
-        humanThread_ = new EMGhumanThread(rate_,name_,calibration_duration_, sensorIds_, iccPairs, subjectId_);
+        humanThread_ = new EMGhumanThread(rate_,name_,calibration_duration_, sensorIds_, iccPairs, subjectId_, rosStreaming_);
         if(!humanThread_->start())
         {
             yError("EMGhuman: cannot start the server thread. Aborting.");
@@ -789,28 +896,28 @@ int main(int argc, char * argv[])
     }
 
     /* creates a node called /yarp/talker */
-    Node node("/yarp/talker");
+    // Node node("/yarp/talker");
  
-    /* subscribe to topic chatter */
-    yarp::os::Publisher<yarp::rosmsg::std_msgs::String> publisher;
-    if (!publisher.topic("/chatter")) {
-        yCError(TALKER) << "Failed to create publisher to /chatter";
-        return -1;
-    }
+    // /* subscribe to topic chatter */
+    // yarp::os::Publisher<yarp::rosmsg::std_msgs::String> publisher;
+    // if (!publisher.topic("/chatter")) {
+    //     yCError(TALKER) << "Failed to create publisher to /chatter";
+    //     return -1;
+    // }
 
-    int foo=0;
-    while (foo<10) {
-        /* prepare some data */
-        yarp::rosmsg::std_msgs::String data;
-        data.data = "Hello from YARP";
+    // int foo=0;
+    // while (foo<10) {
+    //     /* prepare some data */
+    //     yarp::rosmsg::std_msgs::String data;
+    //     data.data = "Hello from YARP";
  
-        /* publish it to the topic */
-        publisher.write(data);
+    //     /* publish it to the topic */
+    //     publisher.write(data);
  
-        /* wait some time to avoid flooding with messages */
-        yarp::os::Time::delay(loop_delay);
-        foo++;
-    }
+    //     /* wait some time to avoid flooding with messages */
+    //     yarp::os::Time::delay(loop_delay);
+    //     foo++;
+    // }
 
     EMGhuman module;
     module.runModule(rf);
