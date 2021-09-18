@@ -2,6 +2,7 @@
 # license removed for brevity
 import rospy
 from std_msgs.msg import String  
+from std_msgs.msg import Float64
 
 import socket
 import sys
@@ -31,8 +32,8 @@ sock.listen(1)
 if __name__ == '__main__':
     # connection
     try: 
-        myMsg = String()
-        pub = rospy.Publisher('icc', String, queue_size=10)
+        myMsg = Float64()
+        pub = rospy.Publisher('icc', Float64, queue_size=10)
         rospy.init_node('emgNode')
         rate = rospy.Rate(1000) # 1000hz
         connStatus = True
@@ -54,7 +55,8 @@ if __name__ == '__main__':
                     # myMsg.data = rosData
                     print(rosData)
                     if rosData:
-                        myMsg = rosData
+                        rosDataFloat = float(rosData.split(',')[0])
+                        myMsg = rosDataFloat
                         # print >>sys.stderr, 'publishing icc to ROS'
                         pub.publish(myMsg)
                     else:
