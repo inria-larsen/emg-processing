@@ -24,7 +24,10 @@
 #include <cmath>
 
 
-#define RMS_WIN_SIZE 112
+// #define RMS_WIN_SIZE 112
+#define RMS_WIN_SIZE 560
+// #define RMS_WIN_SIZE 200
+
 
 /**
  * @brief The EmgSignal class processess the emg read from the EmgTcp class
@@ -55,9 +58,20 @@ public:
 	 *
 	 * @return     { returns the rms value of all the 16 sensors }
 	 */
-	std::vector<double> rms();
+	std::vector<double> rms(std::vector<double> curIn);
 
-	std::vector<double> butterworth(std::vector<double> rmsValues);
+	std::vector<double> hpfButterworth(std::vector<double> curIn);
+
+	std::vector<double> butterworth(std::vector<double> curIn);
+
+	std::vector<double> rectify(std::vector<double> curIn);
+	
+	/**
+	 * @brief      { Applies lpf, rectify, then hpf to the signal of all 16 sensors }
+	 *
+	 * @return     { returns the filtered signal of all 16 sensors }
+	 */
+	std::vector<double> fullFilter(void);
 
 	/**
 	 * @brief      { function_description }
@@ -106,11 +120,18 @@ private:
 	 */
 	std::vector< std::vector<double> > filterBuf_;
 
+	/**
+	 * xv: first 4 positions
+	 * yv: last 4 postions
+	 */
+	std::vector< std::vector<double> > hpFilterBuf_;
+
 	double filterGain_;
 /**
  * maximum value of contraction for each one of the 16 sensors
  */
 	std::vector<double> mvc_;
+	std::vector<double> lpfA_,lpfB_, hpfA_, hpfB_;
 
 	//current sample
 	EmgData sample_;

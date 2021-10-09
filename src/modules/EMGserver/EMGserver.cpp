@@ -120,8 +120,9 @@ public:
 
                 EmgData sample = emgConPtr_->getData();
                 emgSig.setSample(sample, count);
-                std::vector<double> rmsValues = emgSig.rms();
-                std::vector<double> postFiltered = emgSig.butterworth(rmsValues);
+                // std::vector<double> rmsValues = emgSig.rms();
+                // std::vector<double> postFiltered = emgSig.butterworth(rmsValues);
+                std::vector<double> postFiltered = emgSig.fullFilter();
 
 
                 long double curTime = (long double)Time::now() - start;
@@ -129,9 +130,9 @@ public:
                 rawData = sample.data;
                 filteredData = postFiltered;
 
+                // std::cout << endl<<"[FAST THREAD]"<<curTime<< " filtered data is: " << filteredData[2];
                 /*m.lock();
                             //std::cout<< endl<<(long double)Time::now() - start;
-                            std::cout << endl<<"[FAST THREAD]"<<curTime<< " filtered data is: " << filteredData[0];
                         m.unlock();
                         */
 

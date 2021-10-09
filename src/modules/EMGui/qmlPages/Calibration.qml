@@ -11,7 +11,7 @@ Item {
     property int opTimerCountDown: emgUi.calibDur
     property int colTimerCountDown: emgUi.calibDur
 
-    property int countDown: 60
+    property int countDown: 10
 
     property int opTimerRestCountDown: countDown
     property int colTimerRestCountDown: countDown

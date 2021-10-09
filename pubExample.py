@@ -33,7 +33,8 @@ if __name__ == '__main__':
     # connection
     try: 
         myMsg = Float64()
-        pub = rospy.Publisher('icc', Float64, queue_size=10)
+        pub = rospy.Publisher('icc_1', Float64, queue_size=10)
+        # pub2 = rospy.Publisher('icc_2', Float64, queue_size=10)
         rospy.init_node('emgNode')
         rate = rospy.Rate(1000) # 1000hz
         connStatus = True
@@ -44,7 +45,7 @@ if __name__ == '__main__':
             try:
                 print >>sys.stderr, 'connection from', client_address
                 # break
-
+                print("This will receive icc signal and broadcast it to the ROS network")
                 # # Receive the data in small chunks and retransmit to ROS
                 while not rospy.is_shutdown():
                     # pub.publish(myMsg)
@@ -53,12 +54,17 @@ if __name__ == '__main__':
                     rosData = connection.recv(1024)
                     # rosData = struct.unpack('<1f',data)
                     # myMsg.data = rosData
-                    print(rosData)
+                    # print(rosData)
                     if rosData:
-                        rosDataFloat = float(rosData.split(',')[0])
+                        splitMsg = rosData.split(',')
+                        rosDataFloat = float(splitMsg[0])
                         myMsg = rosDataFloat
                         # print >>sys.stderr, 'publishing icc to ROS'
                         pub.publish(myMsg)
+                        # if(splitMsg[1]):
+                        #     myMsg = float(splitMsg[1])
+                        #     # pub2.publish(myMsg)
+                            
                     else:
                         break
                         # connection.sendall(data)
@@ -76,7 +82,7 @@ if __name__ == '__main__':
                 connStatus = False
 
     except rospy.ROSInterruptException:
-        print("Caught ROSS interruption")
+        print("Caught ROS interruption")
 
     sock.close()
 
